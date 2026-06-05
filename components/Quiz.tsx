@@ -10,6 +10,7 @@ import {
   loadBest,
   loadGame,
   MAX_STRIKES,
+  Mood,
   nextQuestion,
   Question,
   saveBest,
@@ -39,6 +40,7 @@ export default function Quiz() {
   const [taunt, setTaunt] = useState<Taunt | null>(null);
   const [lastAction, setLastAction] = useState<Action>("none");
   const [actionKey, setActionKey] = useState(0);
+  const [mood, setMood] = useState<Mood>("happy");
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -116,13 +118,16 @@ export default function Quiz() {
     saveGame(next);
     saveBest(nextBest);
 
-    // 다람쥐 모션 트리거
+    // 다람쥐 모션 + 표정
     if (correct) {
       setLastAction("climb");
+      setMood("happy");
     } else if (next.gameOver) {
       setLastAction("fall");
+      setMood("shocked");
     } else {
       setLastAction("wobble");
+      setMood("sad");
     }
     setActionKey((k) => k + 1);
 
@@ -167,6 +172,7 @@ export default function Quiz() {
     setShowLevelUp(false);
     setLastAction("none");
     setActionKey(0);
+    setMood("happy");
     setTaunt(null);
     loadNext(fresh);
   };
@@ -182,6 +188,7 @@ export default function Quiz() {
           round={game.round}
           lastAction="fall"
           actionKey={actionKey}
+          mood="shocked"
         />
         <div className="card !p-6 grid gap-3 reveal-pop">
           <div>
@@ -215,6 +222,7 @@ export default function Quiz() {
           round={1}
           lastAction="none"
           actionKey={0}
+          mood="happy"
         />
         <div className="card !p-6 grid gap-3 reveal-pop">
           <div className="text-5xl taunt-face">🎉</div>
@@ -247,6 +255,7 @@ export default function Quiz() {
         round={game.round}
         lastAction={lastAction}
         actionKey={actionKey}
+        mood={mood}
       />
 
       {/* 팝업 영역 — 풀이 중에만 보임 */}
@@ -333,11 +342,9 @@ export default function Quiz() {
         </div>
       )}
 
-      {/* 풀이 사이 잠깐 빈 영역 (트리만 보임) */}
+      {/* 풀이 사이엔 트리만 보임 — 의도적으로 빈 영역 */}
       {phase === "transitioning" && (
-        <div className="h-32 grid place-items-center text-muted text-xs">
-          {lastAction === "climb" ? "슉↑" : lastAction === "wobble" ? "휘청..." : ""}
-        </div>
+        <div className="h-4" />
       )}
     </div>
   );

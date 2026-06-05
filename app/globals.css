@@ -118,3 +118,9 @@
   100% { transform: scale(1); opacity: 0.3; filter: grayscale(1); }
 }
 .heart-break { animation: heart-break 0.5s ease-out forwards; }
+
+/* === 표정 이모트 (다람쥐 옆에서 둥둥) === */
+@keyframes mood-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}

@@ -7,6 +7,7 @@ export const TARGET_CORRECT = 30;   // Lv1 → Lv2 진입 정답 수
 export const MAX_STRIKES = 3;       // 누적 오답 한계
 
 export type Level = 1 | 2;
+export type Mood = "happy" | "sad" | "shocked";
 
 export type GameState = {
   level: Level;

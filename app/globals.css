@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body { @apply bg-bg text-text; }
+  body {
+    font-feature-settings: "ss01", "ss02";
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: #6ea8fe33; }
+}
+
+@layer components {
+  .card { @apply bg-panel border border-border rounded-2xl p-5; }
+  .btn { @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-border bg-panel2 hover:bg-border transition-colors text-sm font-medium; }
+  .btn-primary { @apply bg-accent text-bg border-accent hover:opacity-90; }
+  .chip { @apply inline-flex items-center px-2 py-0.5 rounded-md text-[11px] border border-border bg-panel2 text-muted; }
+  .tier-S { @apply text-accent; }
+  .tier-A { @apply text-good; }
+  .tier-B { @apply text-amber-300; }
+  .tier-C { @apply text-muted; }
+}

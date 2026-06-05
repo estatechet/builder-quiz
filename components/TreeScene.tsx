@@ -17,6 +17,13 @@ type Props = {
 
 type Particle = { id: number; left: number; top: number; lx: number; lr: number; emoji: string; kind: "fall" | "up" };
 
+// 일러스트의 도토리 3개 위치 (이미지 기준 %)
+const ACORN_POSITIONS = [
+  { top: "23%", right: "8%" },
+  { top: "42%", right: "8%" },
+  { top: "60%", right: "8%" },
+];
+
 export default function TreeScene({
   correctCount,
   strikes,
@@ -63,8 +70,6 @@ export default function TreeScene({
     return () => clearTimeout(t);
   }, [actionKey, lastAction]);
 
-  // 다람쥐 Y 위치 (트렁크 위 아래 이동)
-  // 0 정답: top 70% (낮음), 30 정답: top 15% (높음)
   const yPct =
     level === 2 ? 12 : Math.max(15, 70 - (correctCount / TARGET_CORRECT) * 55);
 
@@ -81,16 +86,13 @@ export default function TreeScene({
     mood === "sad" ? "💧" :
     null;
 
-  const remainingHearts = MAX_STRIKES - strikes;
-
-  // sad일 때 다람쥐 색감
   const squirrelFilter =
     mood === "sad" ? "saturate(0.55) brightness(0.85)" :
     mood === "shocked" ? "saturate(0.7)" :
     "none";
 
   return (
-    <div className="relative w-full aspect-square max-h-[62vh] mx-auto rounded-3xl overflow-hidden border-4 border-amber-900/50 shadow-2xl">
+    <div className="relative w-full aspect-square max-h-[78vh] mx-auto rounded-3xl overflow-hidden border-2 border-amber-900/40 shadow-2xl">
       {/* 배경 (다람쥐 제거된 씬) */}
       <div className={`absolute inset-0 ${treeShake ? "tree-shake" : ""}`} key={`bg-${treeShake ? actionKey : 0}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -102,17 +104,42 @@ export default function TreeScene({
         />
       </div>
 
+      {/* 우측 도토리 3개 = 목숨. strikes 만큼 가려짐 (위에서부터) */}
+      {ACORN_POSITIONS.map((pos, i) => {
+        const used = i < strikes;
+        if (!used) return null;
+        return (
+          <div
+            key={i}
+            className="absolute rounded-full grid place-items-center z-[5] acorn-broken"
+            style={{
+              top: pos.top,
+              right: pos.right,
+              width: "14%",
+              aspectRatio: "1/1",
+              background:
+                "radial-gradient(circle, rgba(20,15,10,0.88) 55%, rgba(20,15,10,0.55) 75%, transparent 100%)",
+            }}
+          >
+            <span className="text-2xl sm:text-3xl text-red-400 font-black drop-shadow"
+                  style={{ textShadow: "0 0 6px rgba(0,0,0,0.8)" }}>
+              ✗
+            </span>
+          </div>
+        );
+      })}
+
       {/* 오답 빨강 플래시 */}
       {(lastAction === "wobble" || lastAction === "fall") && actionKey > 0 && (
         <div
           key={`flash-${actionKey}`}
-          className="absolute inset-0 bg-red-900/25 pointer-events-none"
+          className="absolute inset-0 bg-red-900/25 pointer-events-none z-[6]"
           style={{ animation: "scene-flash 0.6s ease-out" }}
         />
       )}
 
       {/* 파티클 */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-[7]">
         {particles.map((p) => (
           <span
             key={p.id}
@@ -130,10 +157,10 @@ export default function TreeScene({
         ))}
       </div>
 
-      {/* 다람쥐 스프라이트 (움직임의 주인공) */}
+      {/* 다람쥐 스프라이트 */}
       <div
         key={`sq-${lastAction}-${actionKey}`}
-        className={`absolute pointer-events-none ${animClass}`}
+        className={`absolute pointer-events-none z-[8] ${animClass}`}
         style={{
           left: "38%",
           top: `${yPct}%`,
@@ -170,48 +197,14 @@ export default function TreeScene({
         </div>
       </div>
 
-      {/* HUD 좌상단: 아바타 + 하트 */}
-      <div className="absolute top-[3.5%] left-[3.5%] flex items-center gap-1.5 z-10">
-        <div
-          className="rounded-xl border-[3px] border-amber-950 shadow-lg grid place-items-center text-3xl bg-gradient-to-br from-amber-200 to-amber-700"
-          style={{ width: "52px", height: "52px" }}
-        >
-          {mood === "shocked" ? "😱" : mood === "sad" ? "😢" : "🐿️"}
-        </div>
-        <div className="flex gap-0.5">
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className={`text-2xl sm:text-3xl drop-shadow transition-all ${
-                i < remainingHearts ? "" : "opacity-25 grayscale scale-90"
-              }`}
-            >
-              ❤️
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* HUD 우상단: 도토리 카운터 */}
-      <div
-        className="absolute top-[3.5%] right-[3.5%] px-3 py-1.5 rounded-xl border-[3px] border-amber-950 shadow-lg flex items-center gap-1.5 z-10"
-        style={{ background: "linear-gradient(135deg, #d4a574, #8b5a2b)" }}
-      >
-        <span className="text-2xl drop-shadow">🌰</span>
-        <span className="text-white font-black text-base sm:text-lg tabular-nums drop-shadow">
-          × {correctCount}
-          {level === 1 && <span className="text-amber-200 text-xs sm:text-sm font-bold"> / {TARGET_CORRECT}</span>}
-        </span>
-      </div>
-
       {/* HUD 하단: 진행 게이지 */}
       {level === 1 && (
         <div className="absolute bottom-[3%] left-[4%] right-[4%] z-10">
-          <div className="px-2 py-0.5 mb-1 rounded bg-black/50 backdrop-blur text-white text-[10px] flex justify-between tabular-nums">
-            <span>R{round}</span>
+          <div className="px-2 py-0.5 mb-1 rounded bg-black/55 backdrop-blur text-white text-[10px] flex justify-between tabular-nums">
+            <span>R{round} · 정답 {correctCount}/{TARGET_CORRECT}</span>
             <span>Lv{level} · {Math.round((correctCount / TARGET_CORRECT) * 100)}%</span>
           </div>
-          <div className="h-2.5 bg-black/50 rounded-full overflow-hidden border border-amber-950/60">
+          <div className="h-2.5 bg-black/55 rounded-full overflow-hidden border border-amber-950/60">
             <div
               className="h-full transition-all duration-500 ease-out"
               style={{

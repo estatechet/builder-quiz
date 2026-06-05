@@ -22,6 +22,71 @@
   .tier-C { @apply text-muted; }
 }
 
+/* === 다람쥐 모션 === */
+@keyframes squirrel-idle {
+  0%, 100% { transform: translate(-50%, -50%) rotate(0); }
+  50% { transform: translate(-50%, calc(-50% - 3px)) rotate(0); }
+}
+@keyframes squirrel-climb {
+  0% { transform: translate(-50%, -50%) scale(1, 1); }
+  30% { transform: translate(-50%, -50%) scale(1.25, 0.85); }
+  60% { transform: translate(-50%, -50%) scale(0.85, 1.2); }
+  100% { transform: translate(-50%, -50%) scale(1, 1); }
+}
+@keyframes squirrel-wobble {
+  0% { transform: translate(-50%, -50%) rotate(0); }
+  15% { transform: translate(calc(-50% - 16px), -50%) rotate(-30deg); }
+  30% { transform: translate(calc(-50% + 16px), -50%) rotate(26deg); }
+  45% { transform: translate(calc(-50% - 11px), -50%) rotate(-20deg); }
+  60% { transform: translate(calc(-50% + 8px), -50%) rotate(14deg); }
+  80% { transform: translate(calc(-50% - 4px), -50%) rotate(-6deg); }
+  100% { transform: translate(-50%, -50%) rotate(0); }
+}
+@keyframes squirrel-fall {
+  0% { transform: translate(-50%, -50%) rotate(0); opacity: 1; }
+  25% { transform: translate(calc(-50% - 35px), calc(-50% + 30px)) rotate(220deg); opacity: 1; }
+  60% { transform: translate(calc(-50% - 70px), calc(-50% + 160px)) rotate(580deg); opacity: 1; }
+  100% { transform: translate(calc(-50% - 100px), calc(-50% + 290px)) rotate(900deg); opacity: 0; }
+}
+.squirrel-idle { animation: squirrel-idle 2.4s ease-in-out infinite; }
+.squirrel-climb { animation: squirrel-climb 0.7s cubic-bezier(.34,1.56,.64,1); }
+.squirrel-wobble { animation: squirrel-wobble 0.7s ease-in-out; }
+.squirrel-fall { animation: squirrel-fall 1.3s cubic-bezier(.5,.1,.7,1) forwards; }
+
+/* === 잎 / 스파클 === */
+@keyframes particle-fall {
+  0% { transform: translate(0,0) rotate(0); opacity: 1; }
+  100% { transform: translate(var(--lx,20px), 140px) rotate(var(--lr,180deg)); opacity: 0; }
+}
+@keyframes sparkle-up {
+  0% { transform: translate(0,0) scale(0.5); opacity: 1; }
+  100% { transform: translate(var(--sx,0), -60px) scale(1.2); opacity: 0; }
+}
+.particle-fall { animation: particle-fall 1.4s ease-in forwards; position: absolute; pointer-events: none; }
+.sparkle-up { animation: sparkle-up 0.8s ease-out forwards; position: absolute; pointer-events: none; }
+
+/* === 나무 흔들림 === */
+@keyframes tree-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  50% { transform: translateX(2px); }
+  75% { transform: translateX(-1px); }
+}
+.tree-shake { animation: tree-shake 0.4s ease-in-out; }
+
+/* === 팝업 === */
+@keyframes popup-in {
+  0% { opacity: 0; transform: translateY(20px) scale(0.92); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes popup-out {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-10px) scale(0.95); }
+}
+.popup-in { animation: popup-in 0.28s cubic-bezier(.34,1.56,.64,1) both; }
+.popup-out { animation: popup-out 0.22s ease-in both; }
+
+/* === 야유 (기존) === */
 @keyframes taunt-shake {
   0%, 100% { transform: translateX(0) rotate(0); }
   20% { transform: translateX(-6px) rotate(-1.5deg); }
@@ -46,37 +111,10 @@
 .taunt-bubble { animation: taunt-shake 0.5s ease-in-out; }
 .reveal-pop { animation: reveal-pop 0.25s ease-out; }
 
-@keyframes squirrel-idle {
-  0%, 100% { transform: translate(-50%, -50%) rotate(0); }
-  50% { transform: translate(-50%, calc(-50% - 2px)) rotate(0); }
+/* === 하트 박동 (오답 시 하트 줄어들 때) === */
+@keyframes heart-break {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.4); filter: brightness(1.5); }
+  100% { transform: scale(1); opacity: 0.3; filter: grayscale(1); }
 }
-@keyframes squirrel-wobble {
-  0% { transform: translate(-50%, -50%) rotate(0); }
-  15% { transform: translate(calc(-50% - 14px), -50%) rotate(-28deg); }
-  30% { transform: translate(calc(-50% + 14px), -50%) rotate(24deg); }
-  45% { transform: translate(calc(-50% - 10px), -50%) rotate(-18deg); }
-  60% { transform: translate(calc(-50% + 8px), -50%) rotate(12deg); }
-  80% { transform: translate(calc(-50% - 4px), -50%) rotate(-6deg); }
-  100% { transform: translate(-50%, -50%) rotate(0); }
-}
-@keyframes squirrel-fall {
-  0% { transform: translate(-50%, -50%) rotate(0); opacity: 1; }
-  20% { transform: translate(calc(-50% - 30px), calc(-50% + 20px)) rotate(180deg); opacity: 1; }
-  60% { transform: translate(calc(-50% - 60px), calc(-50% + 140px)) rotate(540deg); opacity: 1; }
-  100% { transform: translate(calc(-50% - 90px), calc(-50% + 260px)) rotate(900deg); opacity: 0; }
-}
-@keyframes leaf-fall {
-  0% { transform: translate(0,0) rotate(0); opacity: 0.9; }
-  100% { transform: translate(var(--lx,20px), 120px) rotate(var(--lr,180deg)); opacity: 0; }
-}
-@keyframes tree-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-2px); }
-  50% { transform: translateX(2px); }
-  75% { transform: translateX(-1px); }
-}
-.squirrel-idle { animation: squirrel-idle 2s ease-in-out infinite; }
-.squirrel-wobble { animation: squirrel-wobble 0.7s ease-in-out; }
-.squirrel-fall { animation: squirrel-fall 1.3s cubic-bezier(.5,.1,.7,1) forwards; }
-.leaf-fall { animation: leaf-fall 1.4s ease-in forwards; position: absolute; pointer-events: none; }
-.tree-shake { animation: tree-shake 0.4s ease-in-out; }
+.heart-break { animation: heart-break 0.5s ease-out forwards; }

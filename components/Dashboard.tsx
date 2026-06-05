@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BUILDERS } from "@/data/brands";
 import { loadStore, resetAll } from "@/lib/storage";
-import { clearGame, initialGame, loadBest, loadGame, MAX_LIVES } from "@/lib/game";
+import { clearGame, initialGame, loadBest, loadGame, MAX_STRIKES, TARGET_CORRECT } from "@/lib/game";
 
 export default function Dashboard() {
   const [store, setStore] = useState(loadStore());
@@ -34,18 +34,18 @@ export default function Dashboard() {
 
   return (
     <div className="grid gap-5">
-      {/* 현재 게임 상태 */}
+      {/* 현재 게임 */}
       <div className="grid grid-cols-3 gap-2 text-center">
-        <Stat label="❤️ 목숨" value={`${game.lives}/${MAX_LIVES}`} />
         <Stat label="레벨" value={`Lv${game.level}`} />
-        <Stat label="라운드" value={`R${game.round}`} />
+        <Stat label="진행" value={game.level === 1 ? `${game.correctCount}/${TARGET_CORRECT}` : `${game.correctCount}`} />
+        <Stat label="❤️ 남은" value={`${MAX_STRIKES - game.strikes}/${MAX_STRIKES}`} />
       </div>
 
       {/* 베스트 */}
       <div className="grid grid-cols-3 gap-2 text-center">
-        <Stat label="최고 ❤️" value={`${best.highestLives}`} muted />
+        <Stat label="최고 Lv1" value={`${best.maxProgressLv1}/${TARGET_CORRECT}`} muted />
         <Stat label="최장 기록" value={`${best.longestRun}`} muted />
-        <Stat label="Lv2 달성" value={best.reachedLv2 ? "✓" : "—"} muted />
+        <Stat label="Lv2 최다" value={best.reachedLv2 ? `${best.bestLv2Correct}` : "—"} muted />
       </div>
 
       {/* CTA */}
@@ -66,6 +66,11 @@ export default function Dashboard() {
             새 게임으로 초기화
           </button>
         )}
+      </div>
+
+      {/* 룰 안내 */}
+      <div className="card !p-3 text-xs text-muted leading-relaxed">
+        <span className="text-text font-semibold">규칙</span> · 정답 {TARGET_CORRECT}개로 Lv2 진입 · 오답 {MAX_STRIKES}번이면 게임오버 · 한 라운드 내 시공사 중복 출제 X
       </div>
 
       {/* 약점 */}
@@ -104,7 +109,7 @@ function Stat({ label, value, muted = false }: { label: string; value: string; m
   return (
     <div className={`card !p-3 ${muted ? "opacity-60" : ""}`}>
       <div className="text-[10px] text-muted uppercase tracking-wide">{label}</div>
-      <div className="text-lg font-bold mt-0.5 tabular-nums">{value}</div>
+      <div className="text-base font-bold mt-0.5 tabular-nums">{value}</div>
     </div>
   );
 }

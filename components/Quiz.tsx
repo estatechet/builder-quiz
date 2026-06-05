@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   applyAnswer,
   checkTextAnswer,
@@ -9,43 +9,49 @@ import {
   initialGame,
   loadBest,
   loadGame,
-  MAX_LIVES,
+  MAX_STRIKES,
   nextQuestion,
   Question,
   saveBest,
   saveGame,
-  START_LIVES,
+  TARGET_CORRECT,
 } from "@/lib/game";
 import { randomTaunt, Taunt } from "@/data/taunts";
 import { recordAnswer } from "@/lib/storage";
 import BrandLogo from "@/components/BrandLogo";
 import TreeScene from "@/components/TreeScene";
 
-const FALL_DURATION_MS = 1300;
+type Phase = "asking" | "revealing" | "transitioning";
+type Action = "none" | "climb" | "wobble" | "fall";
+
+const REVEAL_MS = 1400;       // 정답 공개 시간
+const TRANSITION_MS = 650;    // 팝업 닫힘 → 다음 팝업 사이
+const FALL_MS = 1300;         // 낙하 애니메이션 시간
 
 export default function Quiz() {
   const [game, setGame] = useState<GameState>(initialGame());
   const [best, setBest] = useState(loadBest());
   const [q, setQ] = useState<Question | null>(null);
+  const [phase, setPhase] = useState<Phase>("asking");
   const [picked, setPicked] = useState<string | null>(null);
   const [text, setText] = useState("");
-  const [answered, setAnswered] = useState(false);
   const [lastCorrect, setLastCorrect] = useState<boolean | null>(null);
   const [taunt, setTaunt] = useState<Taunt | null>(null);
+  const [lastAction, setLastAction] = useState<Action>("none");
+  const [actionKey, setActionKey] = useState(0);
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
-  const [wobble, setWobble] = useState(0);
-  const [falling, setFalling] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 초기 로드
+  // 첫 로드
   useEffect(() => {
     const g = loadGame();
     setGame(g);
     setBest(loadBest());
     if (g.gameOver) {
+      setLastAction("fall");
       setShowGameOver(true);
-      setFalling(true);
     } else {
       const n = nextQuestion(g, g.level === 2 ? "builder-to-brand" : undefined);
       const updated: GameState = { ...g, seenIds: n.nextSeen, round: n.nextRound };
@@ -55,11 +61,14 @@ export default function Quiz() {
     }
   }, []);
 
+  // Lv2 인풋 포커스
   useEffect(() => {
-    if (q && game.level === 2 && !answered) inputRef.current?.focus();
-  }, [q, game.level, answered]);
+    if (phase === "asking" && q && game.level === 2) {
+      inputRef.current?.focus();
+    }
+  }, [phase, q, game.level]);
 
-  const advance = (state: GameState) => {
+  const loadNext = useCallback((state: GameState) => {
     const n = nextQuestion(state, state.level === 2 ? "builder-to-brand" : undefined);
     const updated: GameState = { ...state, seenIds: n.nextSeen, round: n.nextRound };
     setGame(updated);
@@ -67,14 +76,35 @@ export default function Quiz() {
     setQ(n.question);
     setPicked(null);
     setText("");
-    setAnswered(false);
-    setLastCorrect(null);
     setTaunt(null);
-  };
+    setLastCorrect(null);
+    setLastAction("none");
+    setPhase("asking");
+  }, []);
 
-  const handleResult = (correct: boolean) => {
-    if (!q) return;
-    setAnswered(true);
+  // 정답 공개 → 다음 문제로
+  const advanceFromReveal = useCallback((next: GameState, justLeveledUp: boolean) => {
+    if (advanceTimerRef.current) {
+      clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
+    }
+    if (next.gameOver) {
+      // 낙하 애니메이션 후 게임오버
+      setPhase("transitioning");
+      setTimeout(() => setShowGameOver(true), FALL_MS);
+      return;
+    }
+    if (justLeveledUp) {
+      setPhase("transitioning");
+      setTimeout(() => setShowLevelUp(true), 400);
+      return;
+    }
+    setPhase("transitioning");
+    setTimeout(() => loadNext(next), TRANSITION_MS);
+  }, [loadNext]);
+
+  const handleResult = useCallback((correct: boolean) => {
+    if (!q || phase !== "asking") return;
     setLastCorrect(correct);
     if (!correct) setTaunt(randomTaunt());
 
@@ -86,78 +116,90 @@ export default function Quiz() {
     saveGame(next);
     saveBest(nextBest);
 
-    if (!correct) {
-      if (next.gameOver) {
-        // 낙하 애니메이션 → 1.3s 뒤 게임오버 화면
-        setFalling(true);
-        setTimeout(() => setShowGameOver(true), FALL_DURATION_MS);
-      } else {
-        // 휘청 모션
-        setWobble((c) => c + 1);
-      }
+    // 다람쥐 모션 트리거
+    if (correct) {
+      setLastAction("climb");
+    } else if (next.gameOver) {
+      setLastAction("fall");
+    } else {
+      setLastAction("wobble");
     }
+    setActionKey((k) => k + 1);
 
-    if (justLeveledUp) {
-      setTimeout(() => setShowLevelUp(true), 900);
-    }
-  };
+    setPhase("revealing");
+
+    // 자동 진행 타이머
+    advanceTimerRef.current = setTimeout(() => {
+      advanceFromReveal(next, justLeveledUp);
+    }, REVEAL_MS);
+  }, [q, phase, game, best, advanceFromReveal]);
 
   const onChoice = (opt: string) => {
-    if (answered || !q) return;
+    if (phase !== "asking") return;
     setPicked(opt);
-    handleResult(opt === q.correct);
+    handleResult(opt === q!.correct);
   };
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (answered || !q || !text.trim()) return;
+    if (phase !== "asking" || !text.trim() || !q) return;
     handleResult(checkTextAnswer(text, q.entry));
   };
 
+  // "다음" 즉시 진행
+  const skipReveal = () => {
+    if (phase !== "revealing") return;
+    if (advanceTimerRef.current) {
+      clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
+    }
+    // 현재 게임 상태로 진행 (방금 적용된 결과 기준)
+    advanceFromReveal(game, false);
+  };
+
   const restart = () => {
+    if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
     const fresh = initialGame();
     clearGame();
     saveGame(fresh);
-    setGame(fresh);
-    setTaunt(null);
-    setShowLevelUp(false);
+    setBest(loadBest());
     setShowGameOver(false);
-    setFalling(false);
-    setWobble(0);
-    const n = nextQuestion(fresh);
-    const updated: GameState = { ...fresh, seenIds: n.nextSeen, round: n.nextRound };
-    setGame(updated);
-    saveGame(updated);
-    setQ(n.question);
-    setPicked(null);
-    setText("");
-    setAnswered(false);
-    setLastCorrect(null);
+    setShowLevelUp(false);
+    setLastAction("none");
+    setActionKey(0);
+    setTaunt(null);
+    loadNext(fresh);
   };
 
   // ─── 게임오버 화면 ───
   if (showGameOver) {
     return (
       <div className="grid gap-4 text-center">
-        <TreeScene lives={0} level={game.level} round={game.round} wobbleKey={0} falling />
+        <TreeScene
+          correctCount={0}
+          strikes={MAX_STRIKES}
+          level={game.level}
+          round={game.round}
+          lastAction="fall"
+          actionKey={actionKey}
+        />
         <div className="card !p-6 grid gap-3 reveal-pop">
           <div>
             <div className="text-3xl font-black tracking-wider text-bad">GAME OVER</div>
-            <div className="text-xs text-muted mt-1">다람쥐가 나무에서 떨어졌습니다 🥲</div>
+            <div className="text-xs text-muted mt-1">3진 아웃, 다람쥐가 떨어졌습니다 🥲</div>
           </div>
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <Mini label="이번 게임" value={`${game.totalAnswered}`} />
-            <Mini label="정답률" value={`${game.totalAnswered ? Math.round((game.totalCorrect / game.totalAnswered) * 100) : 0}%`} />
+          <div className="grid grid-cols-3 gap-2">
+            <Mini label="정답" value={`${game.totalCorrect}`} />
+            <Mini label="총 답변" value={`${game.totalAnswered}`} />
             <Mini label="도달" value={`Lv${game.reachedLv2 ? 2 : 1}`} />
           </div>
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <Mini label="최고 ❤️" value={`${best.highestLives}`} muted />
-            <Mini label="최장 기록" value={`${best.longestRun}`} muted />
-            <Mini label="Lv2 달성" value={best.reachedLv2 ? "✓" : "—"} muted />
+          <div className="grid grid-cols-3 gap-2">
+            <Mini label="최고 진행" value={`${best.maxProgressLv1}/${TARGET_CORRECT}`} muted />
+            <Mini label="최장" value={`${best.longestRun}`} muted />
+            <Mini label="Lv2 최다" value={`${best.bestLv2Correct}`} muted />
           </div>
-          <button onClick={restart} className="btn btn-primary !py-3 mt-1">다시 시작</button>
+          <button onClick={restart} className="btn btn-primary !py-3">다시 시작</button>
         </div>
-        <div className="text-[11px] text-muted">초기 ❤️ {START_LIVES} · 최대 {MAX_LIVES}</div>
       </div>
     );
   }
@@ -166,19 +208,26 @@ export default function Quiz() {
   if (showLevelUp) {
     return (
       <div className="grid gap-4 text-center">
-        <TreeScene lives={game.lives} level={game.level} round={game.round} wobbleKey={0} falling={false} />
+        <TreeScene
+          correctCount={0}
+          strikes={0}
+          level={2}
+          round={1}
+          lastAction="none"
+          actionKey={0}
+        />
         <div className="card !p-6 grid gap-3 reveal-pop">
           <div className="text-5xl taunt-face">🎉</div>
           <div>
             <div className="text-xs text-muted">LEVEL UP</div>
-            <div className="text-2xl font-black text-accent">Lv 2 · 단답형 모드</div>
+            <div className="text-2xl font-black text-accent">Lv 2 · 단답형</div>
           </div>
           <div className="text-sm text-muted leading-relaxed">
             시공사를 보고 <strong className="text-text">대표 브랜드명을 직접 입력</strong>합니다.<br />
-            목숨 규칙 동일 (정답 +1 / 오답 −1).
+            오답 3번이면 게임오버 (목숨 재설정됨).
           </div>
           <button
-            onClick={() => { setShowLevelUp(false); advance(game); }}
+            onClick={() => { setShowLevelUp(false); loadNext(game); }}
             className="btn btn-primary !py-3"
           >
             시작
@@ -188,105 +237,106 @@ export default function Quiz() {
     );
   }
 
-  if (!q) return <div className="text-center text-muted text-sm py-10">로딩 중…</div>;
-
+  // ─── 메인 게임 화면 ───
   return (
     <div className="grid gap-4">
       <TreeScene
-        lives={game.lives}
+        correctCount={game.correctCount}
+        strikes={game.strikes}
         level={game.level}
         round={game.round}
-        wobbleKey={wobble}
-        falling={falling}
+        lastAction={lastAction}
+        actionKey={actionKey}
       />
 
-      {/* 질문 카드 */}
-      <div className="card !p-5 text-center">
-        <div className="text-[11px] text-muted mb-2">{q.questionLabel}</div>
-        <div className="text-2xl sm:text-3xl font-bold break-keep">{q.question}</div>
-      </div>
-
-      {/* Lv1: 4지선다 */}
-      {game.level === 1 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {q.options.map((opt) => {
-            const isC = answered && opt === q.correct;
-            const isW = picked === opt && opt !== q.correct;
-            return (
-              <button
-                key={opt}
-                onClick={() => onChoice(opt)}
-                disabled={answered}
-                className={[
-                  "px-4 py-3 rounded-xl border text-left text-base transition-all",
-                  answered ? "cursor-default" : "hover:bg-panel2 active:scale-[0.98]",
-                  isC ? "border-good bg-good/10 text-good font-medium" :
-                  isW ? "border-bad bg-bad/10 text-bad" :
-                  "border-border bg-panel",
-                ].join(" ")}
-              >
-                {opt}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Lv2: 단답형 */}
-      {game.level === 2 && (
-        <form onSubmit={onSubmit} className="flex gap-2">
-          <input
-            ref={inputRef}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            disabled={answered}
-            placeholder="브랜드명 입력 (예: 래미안)"
-            className={[
-              "flex-1 px-4 py-3 rounded-xl bg-panel border outline-none text-base",
-              answered
-                ? lastCorrect
-                  ? "border-good text-good"
-                  : "border-bad text-bad"
-                : "border-border focus:border-accent",
-            ].join(" ")}
-            autoComplete="off"
-            autoCapitalize="off"
-            spellCheck={false}
-          />
-          {!answered && <button type="submit" className="btn btn-primary !px-5">확인</button>}
-        </form>
-      )}
-
-      {/* 야유 (오답 + 게임 미종료 시) */}
-      {taunt && !falling && (
-        <div
-          key={taunt.line}
-          className="border border-bad/50 bg-bad/10 rounded-xl p-3 flex items-center gap-3 taunt-bubble"
-        >
-          <div className="text-4xl shrink-0 taunt-face">{taunt.face}</div>
-          <div className="text-bad font-bold text-base break-keep">{taunt.line}</div>
-        </div>
-      )}
-
-      {/* 정답 공개 */}
-      {answered && !falling && (
-        <div className="card reveal-pop !p-4 grid gap-3">
-          <div className="flex justify-center">
-            <BrandLogo brand={q.entry.brands[0]} size="lg" />
-          </div>
+      {/* 팝업 영역 — 풀이 중에만 보임 */}
+      {phase !== "transitioning" && q && (
+        <div className="card popup-in !p-5 grid gap-3">
           <div className="text-center">
-            <div className={`text-xs ${lastCorrect ? "text-good" : "text-muted"}`}>
-              {lastCorrect ? "정답!" : "정답은"}
-            </div>
-            <div className="text-base font-semibold mt-0.5">
-              {q.entry.builder} · {q.entry.brands.join(", ")}
-            </div>
-            {q.entry.premium && (
-              <div className="text-xs text-accent mt-0.5">프리미엄: {q.entry.premium.join(", ")}</div>
-            )}
-            {q.entry.note && <div className="text-[11px] text-muted mt-1">{q.entry.note}</div>}
+            <div className="text-[11px] text-muted mb-2">{q.questionLabel}</div>
+            <div className="text-2xl sm:text-3xl font-bold break-keep">{q.question}</div>
           </div>
-          <button className="btn btn-primary !py-3" onClick={() => advance(game)}>다음 →</button>
+
+          {/* Lv1 — 4지선다 */}
+          {game.level === 1 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {q.options.map((opt) => {
+                const isC = phase === "revealing" && opt === q.correct;
+                const isW = picked === opt && opt !== q.correct;
+                return (
+                  <button
+                    key={opt}
+                    onClick={() => onChoice(opt)}
+                    disabled={phase !== "asking"}
+                    className={[
+                      "px-4 py-3 rounded-xl border text-left text-base transition-all",
+                      phase !== "asking" ? "cursor-default" : "hover:bg-panel2 active:scale-[0.98]",
+                      isC ? "border-good bg-good/10 text-good font-medium" :
+                      isW ? "border-bad bg-bad/10 text-bad" :
+                      "border-border bg-panel",
+                    ].join(" ")}
+                  >
+                    {opt}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Lv2 — 단답형 */}
+          {game.level === 2 && (
+            <form onSubmit={onSubmit} className="flex gap-2">
+              <input
+                ref={inputRef}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                disabled={phase !== "asking"}
+                placeholder="브랜드명 입력 (예: 래미안)"
+                className={[
+                  "flex-1 px-4 py-3 rounded-xl bg-panel border outline-none text-base",
+                  phase === "revealing"
+                    ? lastCorrect ? "border-good text-good" : "border-bad text-bad"
+                    : "border-border focus:border-accent",
+                ].join(" ")}
+                autoComplete="off" autoCapitalize="off" spellCheck={false}
+              />
+              {phase === "asking" && <button type="submit" className="btn btn-primary !px-5">확인</button>}
+            </form>
+          )}
+
+          {/* 야유 (오답 + 게임 진행 가능) */}
+          {phase === "revealing" && lastCorrect === false && taunt && (
+            <div className="border border-bad/50 bg-bad/10 rounded-xl p-2.5 flex items-center gap-2 taunt-bubble">
+              <div className="text-2xl shrink-0 taunt-face">{taunt.face}</div>
+              <div className="text-bad font-bold text-sm break-keep">{taunt.line}</div>
+            </div>
+          )}
+
+          {/* 리빌 (정/오답 후 브랜드 정보) */}
+          {phase === "revealing" && (
+            <div className="flex items-center gap-3 pt-1 border-t border-border">
+              <BrandLogo brand={q.entry.brands[0]} size="md" />
+              <div className="flex-1 min-w-0">
+                <div className={`text-[11px] ${lastCorrect ? "text-good" : "text-muted"}`}>
+                  {lastCorrect ? "정답!" : "정답은"}
+                </div>
+                <div className="text-sm font-semibold truncate">
+                  {q.entry.builder} · {q.entry.brands.join(", ")}
+                </div>
+                {q.entry.premium && (
+                  <div className="text-[11px] text-accent truncate">프리미엄: {q.entry.premium.join(", ")}</div>
+                )}
+              </div>
+              <button onClick={skipReveal} className="btn btn-primary !px-3 !py-1.5 text-xs">다음 →</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 풀이 사이 잠깐 빈 영역 (트리만 보임) */}
+      {phase === "transitioning" && (
+        <div className="h-32 grid place-items-center text-muted text-xs">
+          {lastAction === "climb" ? "슉↑" : lastAction === "wobble" ? "휘청..." : ""}
         </div>
       )}
     </div>

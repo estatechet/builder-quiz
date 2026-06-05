@@ -1,64 +1,103 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MAX_LIVES } from "@/lib/game";
+import { MAX_STRIKES, TARGET_CORRECT } from "@/lib/game";
+
+type Action = "none" | "climb" | "wobble" | "fall";
 
 type Props = {
-  lives: number;
+  correctCount: number;
+  strikes: number;
   level: 1 | 2;
   round: number;
-  wobbleKey: number;   // 증가할 때마다 휘청 애니메이션 재생
-  falling: boolean;    // true면 떨어지는 애니메이션
+  lastAction: Action;
+  actionKey: number;
 };
 
-type Leaf = { id: number; left: number; lx: number; lr: number };
+type Particle = { id: number; left: number; lx: number; lr: number; emoji: string; kind: "fall" | "up" };
 
-export default function TreeScene({ lives, level, round, wobbleKey, falling }: Props) {
-  const [leaves, setLeaves] = useState<Leaf[]>([]);
+export default function TreeScene({ correctCount, strikes, level, round, lastAction, actionKey }: Props) {
+  const [particles, setParticles] = useState<Particle[]>([]);
 
-  // 휘청 시 잎 떨어뜨리기
+  // 액션마다 파티클 생성
   useEffect(() => {
-    if (wobbleKey === 0) return;
-    const newLeaves: Leaf[] = Array.from({ length: 5 }).map((_, i) => ({
-      id: Date.now() + i,
-      left: 40 + Math.random() * 20,
-      lx: (Math.random() - 0.5) * 80,
-      lr: (Math.random() - 0.5) * 540,
-    }));
-    setLeaves((prev) => [...prev, ...newLeaves]);
-    const t = setTimeout(() => {
-      setLeaves((prev) => prev.filter((l) => !newLeaves.some((n) => n.id === l.id)));
-    }, 1500);
-    return () => clearTimeout(t);
-  }, [wobbleKey]);
+    if (actionKey === 0 || lastAction === "none" || lastAction === "fall") return;
 
-  // 다람쥐 위치: 목숨이 많을수록 위로
-  const heightPct = Math.max(15, Math.min(78, 80 - (lives / MAX_LIVES) * 65));
+    const newParts: Particle[] = [];
+    if (lastAction === "climb") {
+      // 스파클 위로 튀기
+      for (let i = 0; i < 4; i++) {
+        newParts.push({
+          id: Date.now() + i,
+          left: 45 + Math.random() * 10,
+          lx: (Math.random() - 0.5) * 60,
+          lr: 0,
+          emoji: "✨",
+          kind: "up",
+        });
+      }
+    } else if (lastAction === "wobble") {
+      // 잎 떨어지기
+      for (let i = 0; i < 6; i++) {
+        newParts.push({
+          id: Date.now() + i,
+          left: 35 + Math.random() * 30,
+          lx: (Math.random() - 0.5) * 80,
+          lr: (Math.random() - 0.5) * 540,
+          emoji: "🍃",
+          kind: "fall",
+        });
+      }
+    }
+
+    setParticles((prev) => [...prev, ...newParts]);
+    const t = setTimeout(() => {
+      setParticles((prev) => prev.filter((p) => !newParts.some((n) => n.id === p.id)));
+    }, 1600);
+    return () => clearTimeout(t);
+  }, [actionKey, lastAction]);
+
+  // 다람쥐 위치 — Lv1은 진행도에 비례, Lv2는 최상단 고정
+  const yPct =
+    level === 2 ? 12 : Math.max(15, 80 - (correctCount / TARGET_CORRECT) * 65);
+
+  const animClass =
+    lastAction === "fall" ? "squirrel-fall" :
+    lastAction === "wobble" ? "squirrel-wobble" :
+    lastAction === "climb" ? "squirrel-climb" :
+    "squirrel-idle";
+
+  const treeShake = (lastAction === "wobble" || lastAction === "fall") && actionKey > 0;
+
+  // 진행도 게이지
+  const progressPct = level === 1 ? (correctCount / TARGET_CORRECT) * 100 : 100;
 
   return (
-    <div className="relative w-full h-44 sm:h-52 rounded-2xl overflow-hidden border border-border"
-         style={{ background: "linear-gradient(to bottom, #1a2540 0%, #0b0d10 70%, #1a1410 100%)" }}>
-      {/* 별 (작은 점 몇 개로 분위기) */}
-      <div className="absolute inset-0 pointer-events-none opacity-50">
-        <div className="absolute w-0.5 h-0.5 bg-white rounded-full" style={{ top: "12%", left: "18%" }} />
-        <div className="absolute w-0.5 h-0.5 bg-white rounded-full" style={{ top: "20%", left: "82%" }} />
-        <div className="absolute w-0.5 h-0.5 bg-white rounded-full" style={{ top: "8%", left: "65%" }} />
-        <div className="absolute w-0.5 h-0.5 bg-white rounded-full" style={{ top: "25%", left: "8%" }} />
+    <div
+      className="relative w-full h-72 sm:h-80 rounded-2xl overflow-hidden border border-border"
+      style={{ background: "linear-gradient(to bottom, #1a2540 0%, #0e1320 60%, #1a1410 100%)" }}
+    >
+      {/* 별 */}
+      <div className="absolute inset-0 pointer-events-none opacity-60">
+        {[
+          [12, 18], [20, 82], [8, 65], [25, 8], [15, 42], [22, 92],
+        ].map(([top, left], i) => (
+          <div key={i} className="absolute w-0.5 h-0.5 bg-white rounded-full" style={{ top: `${top}%`, left: `${left}%` }} />
+        ))}
       </div>
 
       {/* 나무 SVG */}
       <svg
         viewBox="0 0 200 300"
         preserveAspectRatio="xMidYMax meet"
-        className={`absolute inset-0 w-full h-full ${wobbleKey > 0 ? "tree-shake" : ""}`}
-        key={`tree-${wobbleKey}`}
+        className={`absolute inset-0 w-full h-full ${treeShake ? "tree-shake" : ""}`}
+        key={`tree-${actionKey}-${lastAction}`}
       >
         {/* 잎 덩어리 */}
         <ellipse cx="100" cy="55" rx="68" ry="48" fill="#1e4a32" />
         <ellipse cx="60" cy="90" rx="36" ry="28" fill="#2d5e42" />
         <ellipse cx="140" cy="90" rx="36" ry="28" fill="#2d5e42" />
         <ellipse cx="100" cy="110" rx="55" ry="22" fill="#34754d" />
-        {/* 잎 디테일 */}
         <ellipse cx="80" cy="45" rx="12" ry="8" fill="#3a6e4a" opacity="0.7" />
         <ellipse cx="125" cy="50" rx="14" ry="9" fill="#3a6e4a" opacity="0.7" />
         {/* 줄기 */}
@@ -75,51 +114,88 @@ export default function TreeScene({ lives, level, round, wobbleKey, falling }: P
         <ellipse cx="100" cy="285" rx="50" ry="6" fill="#5C3A20" opacity="0.6" />
       </svg>
 
-      {/* 떨어지는 잎들 */}
-      {leaves.map((l) => (
+      {/* 파티클 */}
+      {particles.map((p) => (
         <span
-          key={l.id}
-          className="leaf-fall text-base"
+          key={p.id}
+          className={`text-base ${p.kind === "fall" ? "particle-fall" : "sparkle-up"}`}
           style={{
-            top: "40%",
-            left: `${l.left}%`,
-            ["--lx" as any]: `${l.lx}px`,
-            ["--lr" as any]: `${l.lr}deg`,
+            top: p.kind === "fall" ? "40%" : `${yPct}%`,
+            left: `${p.left}%`,
+            ["--lx" as any]: `${p.lx}px`,
+            ["--lr" as any]: `${p.lr}deg`,
+            ["--sx" as any]: `${p.lx}px`,
           }}
         >
-          🍃
+          {p.emoji}
         </span>
       ))}
 
       {/* 다람쥐 */}
       <div
-        key={falling ? "falling" : `squirrel-${wobbleKey}`}
-        className={`absolute text-3xl sm:text-4xl select-none drop-shadow-lg ${
-          falling ? "squirrel-fall" : wobbleKey > 0 ? "squirrel-wobble" : "squirrel-idle"
-        }`}
+        key={`sq-${lastAction}-${actionKey}`}
+        className={`absolute text-4xl sm:text-5xl select-none drop-shadow-lg ${animClass}`}
         style={{
           left: "50%",
-          top: `${heightPct}%`,
+          top: `${yPct}%`,
           transform: "translate(-50%, -50%)",
+          transition:
+            lastAction === "fall" ? "none" :
+            lastAction === "wobble" ? "none" :
+            "top 0.65s cubic-bezier(.34, 1.5, .64, 1)",
         }}
         aria-label="squirrel"
       >
         🐿️
       </div>
 
-      {/* HUD */}
-      <div className="absolute top-2 left-2 right-2 flex items-center justify-between text-[11px]">
-        <div className="flex items-center gap-1.5">
+      {/* HUD: 좌상단 레벨/라운드, 우상단 하트, 하단 진행 게이지 */}
+      <div className="absolute top-2 left-2 right-2 flex items-start justify-between text-[11px] z-10">
+        <div className="flex gap-1">
           <span className="px-1.5 py-0.5 rounded bg-accent text-bg font-bold">Lv{level}</span>
           <span className="px-1.5 py-0.5 rounded bg-bg/70 backdrop-blur text-muted">R{round}</span>
         </div>
-        <div className="px-2 py-0.5 rounded bg-bg/70 backdrop-blur tabular-nums">
-          <span className={lives <= 3 ? "text-bad font-bold" : lives === MAX_LIVES ? "text-good font-bold" : "text-text font-bold"}>
-            ❤️ {lives}
-          </span>
-          <span className="text-muted"> / {MAX_LIVES}</span>
-        </div>
+        <Hearts strikes={strikes} max={MAX_STRIKES} />
       </div>
+
+      {/* 진행 게이지 (Lv1 만) */}
+      {level === 1 && (
+        <div className="absolute bottom-3 left-3 right-3 z-10">
+          <div className="flex justify-between text-[10px] text-white/70 mb-1 tabular-nums">
+            <span>정답 {correctCount} / {TARGET_CORRECT}</span>
+            <span>{Math.round(progressPct)}%</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-black/50 overflow-hidden">
+            <div
+              className="h-full transition-all duration-500 ease-out"
+              style={{ width: `${progressPct}%`, background: progressPct >= 100 ? "#34d399" : "#6ea8fe" }}
+            />
+          </div>
+        </div>
+      )}
+      {level === 2 && (
+        <div className="absolute bottom-3 left-3 right-3 z-10 text-center">
+          <span className="px-2 py-0.5 rounded bg-accent/30 text-accent text-[10px] font-bold tracking-wider">
+            LV 2 · 단답형 정답 {correctCount}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Hearts({ strikes, max }: { strikes: number; max: number }) {
+  const remaining = max - strikes;
+  return (
+    <div className="flex gap-0.5 px-2 py-0.5 rounded bg-bg/70 backdrop-blur text-base">
+      {Array.from({ length: max }).map((_, i) => {
+        const filled = i < remaining;
+        return (
+          <span key={i} className={filled ? "" : "opacity-25 grayscale"}>
+            {filled ? "❤️" : "🤍"}
+          </span>
+        );
+      })}
     </div>
   );
 }

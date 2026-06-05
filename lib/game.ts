@@ -3,16 +3,17 @@
 import { BUILDERS, BuilderEntry } from "@/data/brands";
 import { shuffle } from "@/lib/utils";
 
-export const START_LIVES = 3;
-export const MAX_LIVES = 30;
+export const TARGET_CORRECT = 30;   // Lv1 → Lv2 진입 정답 수
+export const MAX_STRIKES = 3;       // 누적 오답 한계
 
 export type Level = 1 | 2;
 
 export type GameState = {
   level: Level;
-  lives: number;
-  seenIds: number[];           // 현재 라운드 내 출제 완료
-  round: number;               // 한 바퀴 다 돌면 +1
+  correctCount: number;        // 현재 레벨에서 누적 정답 수
+  strikes: number;             // 0~3
+  seenIds: number[];           // 한 라운드 내 출제 완료
+  round: number;
   totalAnswered: number;
   totalCorrect: number;
   gameOver: boolean;
@@ -20,27 +21,29 @@ export type GameState = {
 };
 
 export type Best = {
-  highestLives: number;
+  maxProgressLv1: number;      // Lv1 최고 진행도 (0~30)
+  longestRun: number;          // 단일 게임 총 답변
   reachedLv2: boolean;
-  longestRun: number;          // 한 번에 푼 문제 수
+  bestLv2Correct: number;      // Lv2 단일 게임 최다 정답
 };
 
 export type Question = {
   entry: BuilderEntry;
   question: string;
   questionLabel: string;
-  correct: string;              // Lv1 정답 텍스트 (Lv2에서는 표시용)
-  options: string[];            // Lv1 4지선다
+  correct: string;
+  options: string[];
   mode: "builder-to-brand" | "brand-to-builder";
 };
 
-const KEY = "builder-quiz:game:v1";
-const BEST_KEY = "builder-quiz:best:v1";
+const KEY = "builder-quiz:game:v2";
+const BEST_KEY = "builder-quiz:best:v2";
 
 export function initialGame(): GameState {
   return {
     level: 1,
-    lives: START_LIVES,
+    correctCount: 0,
+    strikes: 0,
     seenIds: [],
     round: 1,
     totalAnswered: 0,
@@ -71,13 +74,13 @@ export function clearGame() {
 }
 
 export function loadBest(): Best {
-  if (typeof window === "undefined") return { highestLives: 0, reachedLv2: false, longestRun: 0 };
+  if (typeof window === "undefined") return { maxProgressLv1: 0, longestRun: 0, reachedLv2: false, bestLv2Correct: 0 };
   try {
     const raw = localStorage.getItem(BEST_KEY);
-    if (!raw) return { highestLives: 0, reachedLv2: false, longestRun: 0 };
-    return JSON.parse(raw);
+    if (!raw) return { maxProgressLv1: 0, longestRun: 0, reachedLv2: false, bestLv2Correct: 0 };
+    return { maxProgressLv1: 0, longestRun: 0, reachedLv2: false, bestLv2Correct: 0, ...JSON.parse(raw) };
   } catch {
-    return { highestLives: 0, reachedLv2: false, longestRun: 0 };
+    return { maxProgressLv1: 0, longestRun: 0, reachedLv2: false, bestLv2Correct: 0 };
   }
 }
 
@@ -86,18 +89,16 @@ export function saveBest(b: Best) {
   localStorage.setItem(BEST_KEY, JSON.stringify(b));
 }
 
-export function updateBestFrom(prev: Best, g: GameState): Best {
+export function updateBest(prev: Best, g: GameState): Best {
   return {
-    highestLives: Math.max(prev.highestLives, g.lives),
-    reachedLv2: prev.reachedLv2 || g.reachedLv2,
+    maxProgressLv1: g.level === 1 ? Math.max(prev.maxProgressLv1, g.correctCount) : prev.maxProgressLv1,
     longestRun: Math.max(prev.longestRun, g.totalAnswered),
+    reachedLv2: prev.reachedLv2 || g.reachedLv2,
+    bestLv2Correct: g.level === 2 ? Math.max(prev.bestLv2Correct, g.correctCount) : prev.bestLv2Correct,
   };
 }
 
-/**
- * 한 라운드 내 중복 없이 다음 문제 뽑기.
- * 모두 출제 완료되면 round +1 + seenIds 리셋.
- */
+/** 중복 없이 다음 문제 픽 */
 export function nextQuestion(
   g: GameState,
   forcedMode?: "builder-to-brand" | "brand-to-builder"
@@ -116,7 +117,9 @@ export function nextQuestion(
 
   const correct = mode === "builder-to-brand" ? entry.brands[0] : entry.builder;
   const wrongs = shuffle(
-    BUILDERS.filter((b) => b.id !== entry.id).map((b) => (mode === "builder-to-brand" ? b.brands[0] : b.builder))
+    BUILDERS.filter((b) => b.id !== entry.id).map((b) =>
+      mode === "builder-to-brand" ? b.brands[0] : b.builder
+    )
   ).slice(0, 3);
 
   const question: Question = {
@@ -140,7 +143,6 @@ export function normalize(s: string): string {
     .trim();
 }
 
-/** Lv2 답안 채점: brands + premium + aliases 중 하나와 정규화 일치 */
 export function checkTextAnswer(input: string, entry: BuilderEntry): boolean {
   const acceptable = [
     ...entry.brands,
@@ -158,27 +160,26 @@ export type ApplyResult = {
   justLeveledUp: boolean;
 };
 
-/** 정답/오답 결과를 상태에 반영 */
 export function applyAnswer(g: GameState, b: Best, correct: boolean): ApplyResult {
-  const delta = correct ? 1 : -1;
-  const newLives = Math.max(0, Math.min(MAX_LIVES, g.lives + delta));
-  const justLeveledUp = g.level === 1 && correct && newLives === MAX_LIVES;
-  const newLevel: Level = justLeveledUp ? 2 : g.level;
+  let correctCount = g.correctCount;
+  let strikes = g.strikes;
+  if (correct) correctCount++;
+  else strikes++;
+
+  const gameOver = strikes >= MAX_STRIKES;
+  const justLeveledUp = g.level === 1 && correctCount >= TARGET_CORRECT && !gameOver;
 
   const next: GameState = {
     ...g,
-    lives: newLives,
-    level: newLevel,
+    correctCount: justLeveledUp ? 0 : correctCount,
+    strikes: justLeveledUp ? 0 : strikes,
+    level: justLeveledUp ? 2 : g.level,
     reachedLv2: g.reachedLv2 || justLeveledUp,
-    gameOver: newLives <= 0,
+    gameOver,
     totalAnswered: g.totalAnswered + 1,
     totalCorrect: g.totalCorrect + (correct ? 1 : 0),
+    seenIds: justLeveledUp ? [] : g.seenIds,
+    round: justLeveledUp ? 1 : g.round,
   };
-  // 레벨업 시 라운드 새로 시작
-  if (justLeveledUp) {
-    next.seenIds = [];
-    next.round = 1;
-  }
-  // 게임오버 시 totalAnswered 리셋은 다음 게임에서 (best 갱신은 여기서)
-  return { game: next, best: updateBestFrom(b, next), justLeveledUp };
+  return { game: next, best: updateBest(b, next), justLeveledUp };
 }

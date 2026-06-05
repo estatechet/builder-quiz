@@ -8,6 +8,7 @@ export type BuilderEntry = {
   tier: Tier;             // S=Top10, A=11~25, B=26~40, C=41~
   note?: string;
   slug?: string;          // public/logos/{slug}.png 파일이 있으면 그 이미지 우선 사용
+  aliases?: string[];     // 단답형(Lv2)에서 추가로 허용할 입력값
 };
 
 /**
@@ -111,7 +112,7 @@ export const BUILDERS: BuilderEntry[] = [
   { id: 3,  builder: "대우건설", brands: ["푸르지오"], premium: ["푸르지오 써밋"], tier: "S" },
   { id: 4,  builder: "현대엔지니어링", brands: ["힐스테이트"], premium: ["디에이치"], tier: "S", note: "현대건설과 브랜드 공유" },
   { id: 5,  builder: "GS건설", brands: ["자이"], tier: "S" },
-  { id: 6,  builder: "DL이앤씨", brands: ["e편한세상"], premium: ["아크로"], tier: "S" },
+  { id: 6,  builder: "DL이앤씨", brands: ["e편한세상"], premium: ["아크로"], tier: "S", aliases: ["이편한세상", "epyeonhansesang"] },
   { id: 7,  builder: "포스코이앤씨", brands: ["더샵"], premium: ["오티에르"], tier: "S" },
   { id: 8,  builder: "롯데건설", brands: ["롯데캐슬"], premium: ["르엘"], tier: "S" },
   { id: 9,  builder: "SK에코플랜트", brands: ["SK뷰"], tier: "S" },
@@ -129,7 +130,7 @@ export const BUILDERS: BuilderEntry[] = [
   { id: 19, builder: "동부건설", brands: ["센트레빌"], tier: "A" },
   { id: 20, builder: "서희건설", brands: ["스타힐스"], tier: "A" },
   { id: 21, builder: "한신공영", brands: ["한신더휴"], tier: "A" },
-  { id: 22, builder: "우미건설", brands: ["린(LYNN)"], tier: "A" },
+  { id: 22, builder: "우미건설", brands: ["린(LYNN)"], tier: "A", aliases: ["린", "lynn", "우미린"] },
   { id: 23, builder: "신동아건설", brands: ["파밀리에"], tier: "A" },
   { id: 24, builder: "반도건설", brands: ["유보라"], tier: "A" },
   { id: 25, builder: "효성중공업 건설부문", brands: ["해링턴플레이스"], tier: "A" },

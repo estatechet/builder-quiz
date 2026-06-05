@@ -17,11 +17,11 @@ type Props = {
 
 type Particle = { id: number; left: number; top: number; lx: number; lr: number; emoji: string; kind: "fall" | "up" };
 
-// 일러스트의 도토리 3개 위치 (이미지 기준 %)
+// 새 일러스트의 도토리 3개 위치 (목숨 시각화 용)
 const ACORN_POSITIONS = [
-  { top: "23%", right: "8%" },
-  { top: "42%", right: "8%" },
-  { top: "60%", right: "8%" },
+  { top: "13%", right: "5%" },
+  { top: "33%", right: "5%" },
+  { top: "54%", right: "5%" },
 ];
 
 export default function TreeScene({
@@ -42,7 +42,7 @@ export default function TreeScene({
       for (let i = 0; i < 6; i++) {
         newParts.push({
           id: Date.now() + i,
-          left: 30 + Math.random() * 20,
+          left: 35 + Math.random() * 20,
           top: 50,
           lx: (Math.random() - 0.5) * 70,
           lr: 0,
@@ -54,7 +54,7 @@ export default function TreeScene({
       for (let i = 0; i < 7; i++) {
         newParts.push({
           id: Date.now() + i,
-          left: 25 + Math.random() * 35,
+          left: 30 + Math.random() * 35,
           top: 35,
           lx: (Math.random() - 0.5) * 90,
           lr: (Math.random() - 0.5) * 540,
@@ -70,8 +70,9 @@ export default function TreeScene({
     return () => clearTimeout(t);
   }, [actionKey, lastAction]);
 
+  // 다람쥐 위치 — 트렁크가 우측에 있으니 left를 약간 우측으로
   const yPct =
-    level === 2 ? 12 : Math.max(15, 70 - (correctCount / TARGET_CORRECT) * 55);
+    level === 2 ? 12 : Math.max(15, 75 - (correctCount / TARGET_CORRECT) * 60);
 
   const animClass =
     lastAction === "fall" ? "squirrel-sprite-fall" :
@@ -91,35 +92,37 @@ export default function TreeScene({
     mood === "shocked" ? "saturate(0.7)" :
     "none";
 
+  const progressPct = Math.min(100, (correctCount / TARGET_CORRECT) * 100);
+
   return (
     <div
       className="relative w-full aspect-square mx-auto rounded-3xl overflow-hidden border-2 border-amber-900/40 shadow-2xl"
       style={{
-        // 헤더(약 64px) + 문제카드(약 320px) + 푸터/여백 합쳐서 확보, 한 화면에 들어오게 제한
         maxHeight: "min(calc(100svh - 380px), 80vw)",
         maxWidth: "calc(100svh - 380px)",
       }}
     >
-      {/* 배경 (다람쥐 제거된 씬) */}
+      {/* 배경 (다람쥐만 제거된 새 일러스트) */}
       <div className={`absolute inset-0 ${treeShake ? "tree-shake" : ""}`} key={`bg-${treeShake ? actionKey : 0}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/scene-bg-v2.png"
+          src="/scene-bg-v3.png"
           alt="숲 배경"
           className="w-full h-full object-cover select-none pointer-events-none"
           draggable={false}
         />
       </div>
 
-      {/* 우상단: 동적 도토리 카운터 (정답마다 +1, 30 도달 시 황금) */}
+      {/* 우상단 도토리 카운터 — 일러스트의 박스 위에 정확히 덮기 */}
       <div
         key={`acorn-counter-${correctCount}`}
-        className={`absolute z-20 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl border-[3px] shadow-lg flex items-center gap-1.5 ${
+        className={`absolute z-20 px-2.5 py-1.5 rounded-xl border-[3px] shadow-lg flex items-center gap-1.5 ${
           correctCount > 0 ? "acorn-pulse" : ""
         }`}
         style={{
-          top: "3%",
+          top: "2.5%",
           right: "3%",
+          minWidth: "23%",
           background: correctCount >= TARGET_CORRECT
             ? "linear-gradient(135deg, #fde047, #f59e0b)"
             : "linear-gradient(135deg, #d4a574, #8b5a2b)",
@@ -129,14 +132,14 @@ export default function TreeScene({
             : "0 4px 10px rgba(0,0,0,0.4)",
         }}
       >
-        <span className="text-xl sm:text-2xl drop-shadow">🌰</span>
+        <span className="text-xl drop-shadow">🌰</span>
         <span className="text-white font-black text-sm sm:text-base tabular-nums drop-shadow">
           {correctCount}
           <span className="text-amber-200 text-xs sm:text-sm"> / {TARGET_CORRECT}</span>
         </span>
       </div>
 
-      {/* 우측 도토리 3개 = 목숨. strikes 만큼 가려짐 (위에서부터) */}
+      {/* 우측 도토리 3개 = 목숨. strikes 만큼 가려짐 */}
       {ACORN_POSITIONS.map((pos, i) => {
         const used = i < strikes;
         if (!used) return null;
@@ -147,7 +150,7 @@ export default function TreeScene({
             style={{
               top: pos.top,
               right: pos.right,
-              width: "14%",
+              width: "13%",
               aspectRatio: "1/1",
               background:
                 "radial-gradient(circle, rgba(20,15,10,0.88) 55%, rgba(20,15,10,0.55) 75%, transparent 100%)",
@@ -189,14 +192,14 @@ export default function TreeScene({
         ))}
       </div>
 
-      {/* 다람쥐 스프라이트 */}
+      {/* 다람쥐 스프라이트 (새 이미지) */}
       <div
         key={`sq-${lastAction}-${actionKey}`}
         className={`absolute pointer-events-none z-[8] ${animClass}`}
         style={{
-          left: "38%",
+          left: "45%",
           top: `${yPct}%`,
-          width: "32%",
+          width: "28%",
           transform: "translate(-50%, -50%)",
           transition:
             lastAction === "fall" || lastAction === "wobble"
@@ -207,7 +210,7 @@ export default function TreeScene({
         <div className="relative">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/squirrel.png"
+            src="/squirrel-v2.png"
             alt="squirrel"
             className="w-full h-auto select-none drop-shadow-lg"
             style={{ filter: squirrelFilter, transition: "filter 0.3s" }}
@@ -229,33 +232,26 @@ export default function TreeScene({
         </div>
       </div>
 
-      {/* HUD 하단: 얇은 진행 게이지 (Lv/Round 작게) */}
-      {level === 1 && (
-        <div className="absolute bottom-[3%] left-[4%] right-[4%] z-10">
-          <div className="flex justify-end mb-1">
-            <span className="px-1.5 py-0.5 rounded bg-black/55 backdrop-blur text-white/80 text-[9px] tabular-nums">
-              Lv{level} · R{round}
-            </span>
-          </div>
-          <div className="h-2 bg-black/55 rounded-full overflow-hidden border border-amber-950/60">
-            <div
-              className="h-full transition-all duration-500 ease-out"
-              style={{
-                width: `${(correctCount / TARGET_CORRECT) * 100}%`,
-                background: "linear-gradient(90deg, #f59e0b, #fde047, #f59e0b)",
-                boxShadow: "0 0 10px #fbbf24aa",
-              }}
-            />
-          </div>
+      {/* 하단 진행 게이지 — 일러스트의 노란 게이지 위에 덮음 */}
+      <div className="absolute bottom-[2%] left-[3%] right-[20%] z-10">
+        <div className="h-3 sm:h-3.5 bg-black/55 rounded-full overflow-hidden border border-amber-950/60">
+          <div
+            className="h-full transition-all duration-500 ease-out"
+            style={{
+              width: `${progressPct}%`,
+              background: "linear-gradient(90deg, #f59e0b, #fde047, #f59e0b)",
+              boxShadow: "0 0 10px #fbbf24aa",
+            }}
+          />
         </div>
-      )}
-      {level === 2 && (
-        <div className="absolute bottom-[4%] left-[4%] right-[4%] z-10 text-center">
-          <span className="inline-block px-3 py-1 rounded-full bg-amber-600 text-white font-bold text-xs shadow-lg border-2 border-amber-800">
-            🌟 LV 2 · 단답형 · 정답 {correctCount}
-          </span>
-        </div>
-      )}
+      </div>
+
+      {/* 우하단 Lv·R 라벨 — 일러스트의 텍스트 위에 덮음 */}
+      <div className="absolute bottom-[6%] right-[3%] z-10">
+        <span className="px-2 py-0.5 rounded bg-black/55 backdrop-blur text-white text-[10px] sm:text-xs font-bold tabular-nums">
+          Lv{level} · R{round}
+        </span>
+      </div>
     </div>
   );
 }

@@ -109,6 +109,57 @@ export default function TreeScene({
           className="w-full h-full object-cover select-none pointer-events-none"
           draggable={false}
         />
+        {/* 좌상단 HUD 잔흔 가리기 (다람쥐 액자 + 하트) */}
+        <div
+          className="absolute top-0 left-0 pointer-events-none"
+          style={{
+            width: "62%",
+            height: "22%",
+            background: "linear-gradient(135deg, rgba(20,55,90,0.55) 0%, rgba(20,55,90,0.35) 45%, transparent 80%)",
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            maskImage: "linear-gradient(135deg, black 0%, black 50%, transparent 90%)",
+            WebkitMaskImage: "linear-gradient(135deg, black 0%, black 50%, transparent 90%)",
+          }}
+        />
+        {/* 우상단 HUD 잔흔 가리기 (도토리 x25 텍스트) */}
+        <div
+          className="absolute top-0 right-0 pointer-events-none"
+          style={{
+            width: "44%",
+            height: "19%",
+            background: "linear-gradient(225deg, rgba(90,55,30,0.55) 0%, rgba(90,55,30,0.35) 45%, transparent 80%)",
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            maskImage: "linear-gradient(225deg, black 0%, black 55%, transparent 90%)",
+            WebkitMaskImage: "linear-gradient(225deg, black 0%, black 55%, transparent 90%)",
+          }}
+        />
+      </div>
+
+      {/* 우상단: 동적 도토리 카운터 (정답마다 +1, 30 도달 시 황금) */}
+      <div
+        key={`acorn-counter-${correctCount}`}
+        className={`absolute z-20 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl border-[3px] shadow-lg flex items-center gap-1.5 ${
+          correctCount > 0 ? "acorn-pulse" : ""
+        }`}
+        style={{
+          top: "3%",
+          right: "3%",
+          background: correctCount >= TARGET_CORRECT
+            ? "linear-gradient(135deg, #fde047, #f59e0b)"
+            : "linear-gradient(135deg, #d4a574, #8b5a2b)",
+          borderColor: correctCount >= TARGET_CORRECT ? "#92400e" : "#451a03",
+          boxShadow: correctCount >= TARGET_CORRECT
+            ? "0 0 18px #fbbf24, 0 4px 10px rgba(0,0,0,0.4)"
+            : "0 4px 10px rgba(0,0,0,0.4)",
+        }}
+      >
+        <span className="text-xl sm:text-2xl drop-shadow">🌰</span>
+        <span className="text-white font-black text-sm sm:text-base tabular-nums drop-shadow">
+          {correctCount}
+          <span className="text-amber-200 text-xs sm:text-sm"> / {TARGET_CORRECT}</span>
+        </span>
       </div>
 
       {/* 우측 도토리 3개 = 목숨. strikes 만큼 가려짐 (위에서부터) */}
@@ -204,14 +255,15 @@ export default function TreeScene({
         </div>
       </div>
 
-      {/* HUD 하단: 진행 게이지 */}
+      {/* HUD 하단: 얇은 진행 게이지 (Lv/Round 작게) */}
       {level === 1 && (
         <div className="absolute bottom-[3%] left-[4%] right-[4%] z-10">
-          <div className="px-2 py-0.5 mb-1 rounded bg-black/55 backdrop-blur text-white text-[10px] flex justify-between tabular-nums">
-            <span>R{round} · 정답 {correctCount}/{TARGET_CORRECT}</span>
-            <span>Lv{level} · {Math.round((correctCount / TARGET_CORRECT) * 100)}%</span>
+          <div className="flex justify-end mb-1">
+            <span className="px-1.5 py-0.5 rounded bg-black/55 backdrop-blur text-white/80 text-[9px] tabular-nums">
+              Lv{level} · R{round}
+            </span>
           </div>
-          <div className="h-2.5 bg-black/55 rounded-full overflow-hidden border border-amber-950/60">
+          <div className="h-2 bg-black/55 rounded-full overflow-hidden border border-amber-950/60">
             <div
               className="h-full transition-all duration-500 ease-out"
               style={{

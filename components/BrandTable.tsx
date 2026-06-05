@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BUILDERS, TIER_LABEL, Tier } from "@/data/brands";
-import { tierColor } from "@/lib/utils";
+import { BUILDERS, Tier } from "@/data/brands";
+import BrandLogo from "@/components/BrandLogo";
 
 export default function BrandTable() {
   const [q, setQ] = useState("");
@@ -18,20 +18,20 @@ export default function BrandTable() {
   }, [q, tier]);
 
   return (
-    <div className="grid gap-4">
-      <div className="flex flex-wrap gap-2 items-center">
+    <div className="grid gap-3">
+      <div className="flex gap-2 items-center">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="시공사 또는 브랜드 검색…"
-          className="px-3 py-2 rounded-xl bg-panel border border-border outline-none text-sm flex-1 min-w-[200px] focus:border-accent"
+          placeholder="검색..."
+          className="px-3 py-2 rounded-lg bg-panel border border-border outline-none text-sm flex-1 focus:border-accent"
         />
-        <div className="flex gap-1">
+        <div className="flex gap-0.5">
           {(["ALL", "S", "A", "B", "C"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTier(t)}
-              className={`btn !px-3 ${tier === t ? "btn-primary" : ""}`}
+              className={`px-2 py-1.5 rounded text-xs ${tier === t ? "bg-accent text-bg font-medium" : "text-muted hover:text-text"}`}
             >
               {t === "ALL" ? "전체" : t}
             </button>
@@ -39,34 +39,23 @@ export default function BrandTable() {
         </div>
       </div>
 
-      <div className="card !p-0 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-panel2 text-muted text-xs">
-            <tr>
-              <th className="text-left px-4 py-3 w-12">#</th>
-              <th className="text-left px-4 py-3">시공사</th>
-              <th className="text-left px-4 py-3">대표 브랜드</th>
-              <th className="text-left px-4 py-3">프리미엄</th>
-              <th className="text-left px-4 py-3 w-24">티어</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((b) => (
-              <tr key={b.id} className="border-t border-border hover:bg-panel2/50">
-                <td className="px-4 py-3 text-muted">{b.id}</td>
-                <td className="px-4 py-3 font-medium">{b.builder}</td>
-                <td className="px-4 py-3">{b.brands.join(", ")}</td>
-                <td className="px-4 py-3 text-accent">{b.premium?.join(", ") ?? "—"}</td>
-                <td className="px-4 py-3">
-                  <span className={`chip ${tierColor(b.tier)}`}>{b.tier} · {TIER_LABEL[b.tier]}</span>
-                </td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-10 text-center text-muted">결과 없음</td></tr>
-            )}
-          </tbody>
-        </table>
+      <div className="grid gap-2">
+        {rows.map((b) => (
+          <div key={b.id} className="card !p-3 flex items-center gap-3">
+            <div className="shrink-0">
+              <BrandLogo brand={b.brands[0]} size="sm" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium truncate">{b.builder}</div>
+              <div className="text-xs text-muted truncate">
+                {b.brands.join(", ")}
+                {b.premium && <span className="text-accent"> / {b.premium.join(", ")}</span>}
+              </div>
+            </div>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded border border-border tier-${b.tier}`}>{b.tier}</span>
+          </div>
+        ))}
+        {rows.length === 0 && <div className="text-center text-muted text-sm py-10">결과 없음</div>}
       </div>
     </div>
   );

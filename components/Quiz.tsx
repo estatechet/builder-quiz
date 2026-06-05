@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { BUILDERS, BuilderEntry } from "@/data/brands";
-import { pickQuestion, tierColor, shuffle } from "@/lib/utils";
+import { pickQuestion } from "@/lib/utils";
 import { loadStore, recordAnswer, resetSession } from "@/lib/storage";
 import { randomTaunt, Taunt } from "@/data/taunts";
+import BrandLogo from "@/components/BrandLogo";
 
 type Mode = "builder-to-brand" | "brand-to-builder" | "mixed";
 
@@ -61,108 +62,101 @@ export default function Quiz() {
     setTaunt(correct ? null : randomTaunt());
   };
 
-  const acc = session.total ? Math.round((session.correct / session.total) * 100) : 0;
-
   if (!q) return null;
+  const isCorrect = picked === q.correct;
+  const acc = session.total ? Math.round((session.correct / session.total) * 100) : 0;
+  // 정답 브랜드 (시공사→브랜드 모드면 q.correct, 브랜드→시공사 모드면 q.entry.brands[0])
+  const revealBrand = q.mode === "builder-to-brand" ? q.entry.brands[0] : q.entry.brands[0];
 
   return (
-    <div className="grid gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2">
-          {(["builder-to-brand", "brand-to-builder", "mixed"] as Mode[]).map((m) => (
+    <div className="grid gap-4">
+      {/* 컴팩트 헤더: 모드 + 세션 통계 */}
+      <div className="flex items-center justify-between gap-2 text-xs">
+        <div className="flex gap-1">
+          {(["mixed", "builder-to-brand", "brand-to-builder"] as Mode[]).map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
-              className={`btn ${mode === m ? "btn-primary" : ""}`}
+              className={`px-2 py-1 rounded ${mode === m ? "bg-accent text-bg font-medium" : "text-muted hover:text-text"}`}
             >
-              {m === "builder-to-brand" ? "시공사→브랜드" : m === "brand-to-builder" ? "브랜드→시공사" : "혼합"}
+              {m === "mixed" ? "혼합" : m === "builder-to-brand" ? "시공사→브랜드" : "브랜드→시공사"}
             </button>
           ))}
         </div>
-        <label className="flex items-center gap-2 text-xs text-muted select-none">
-          <input type="checkbox" checked={weakBias} onChange={(e) => setWeakBias(e.target.checked)} />
-          약점 가중치 (자주 틀린 항목 더 자주 출제)
-        </label>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3">
-        <Mini label="이번 세션 정답률" value={`${acc}%`} sub={`${session.correct}/${session.total}`} />
-        <Mini label="연속 정답" value={`${session.streak}`} sub="streak" />
-        <Mini label="최고 연속" value={`${session.bestStreak}`} sub="best" />
-      </div>
-
-      <div className={`card ${taunt ? "flash-bad" : ""}`}>
-        <div className="flex items-center justify-between mb-2">
-          <span className="chip">{q.mode === "builder-to-brand" ? "시공사→브랜드" : "브랜드→시공사"}</span>
-          <span className={`chip ${tierColor(q.entry.tier)}`}>{q.entry.tier}티어</span>
+        <div className="flex items-center gap-3 text-muted tabular-nums">
+          <span>{acc}% · {session.correct}/{session.total}</span>
+          <span>🔥 {session.streak}</span>
         </div>
-        <div className="text-sm text-muted">{q.questionLabel}</div>
-        <div className="text-3xl font-bold mt-2 mb-6 break-keep">{q.question}</div>
-
-        <div className="grid sm:grid-cols-2 gap-2">
-          {q.options.map((opt) => {
-            const isCorrect = picked && opt === q.correct;
-            const isWrong = picked === opt && opt !== q.correct;
-            return (
-              <button
-                key={opt}
-                onClick={() => choose(opt)}
-                disabled={!!picked}
-                className={[
-                  "text-left px-4 py-3 rounded-xl border transition-all",
-                  picked ? "cursor-default" : "hover:bg-panel2",
-                  isCorrect ? "border-good bg-good/10 text-good" :
-                  isWrong ? "border-bad bg-bad/10 text-bad" :
-                  "border-border bg-panel",
-                ].join(" ")}
-              >
-                {opt}
-              </button>
-            );
-          })}
-        </div>
-
-        {taunt && (
-          <div
-            key={taunt.line}
-            className="mt-5 border-2 border-bad/60 bg-bad/10 rounded-2xl p-4 flex items-center gap-4 taunt-bubble"
-          >
-            <div className="text-5xl sm:text-6xl shrink-0 taunt-face" aria-hidden>
-              {taunt.face}
-            </div>
-            <div className="flex-1">
-              <div className="text-[11px] text-bad font-semibold tracking-wider mb-0.5">💢 오답 💢</div>
-              <div className="text-bad font-extrabold text-lg sm:text-xl leading-tight break-keep">
-                {taunt.line}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {picked && (
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-            <div className="text-sm">
-              <div className="text-muted">{taunt ? "정답은" : "정답"}</div>
-              <div className="text-base font-semibold">
-                {q.entry.builder} · {q.entry.brands.join(", ")}
-                {q.entry.premium && <span className="text-accent"> / {q.entry.premium.join(", ")} (프리미엄)</span>}
-              </div>
-              {q.entry.note && <div className="text-xs text-muted mt-0.5">{q.entry.note}</div>}
-            </div>
-            <button className="btn btn-primary" onClick={next}>다음 문제 →</button>
-          </div>
-        )}
       </div>
-    </div>
-  );
-}
 
-function Mini({ label, value, sub }: { label: string; value: string; sub: string }) {
-  return (
-    <div className="card py-3">
-      <div className="text-[11px] text-muted">{label}</div>
-      <div className="text-xl font-bold">{value}</div>
-      <div className="text-[11px] text-muted">{sub}</div>
+      {/* 질문 카드 */}
+      <div className="card !p-6 text-center">
+        <div className="text-[11px] text-muted mb-3">{q.questionLabel}</div>
+        <div className="text-3xl sm:text-4xl font-bold break-keep">{q.question}</div>
+      </div>
+
+      {/* 선택지 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {q.options.map((opt) => {
+          const correct = picked && opt === q.correct;
+          const wrong = picked === opt && opt !== q.correct;
+          return (
+            <button
+              key={opt}
+              onClick={() => choose(opt)}
+              disabled={!!picked}
+              className={[
+                "px-4 py-3 rounded-xl border text-left text-base transition-all",
+                picked ? "cursor-default" : "hover:bg-panel2 active:scale-[0.98]",
+                correct ? "border-good bg-good/10 text-good font-medium" :
+                wrong ? "border-bad bg-bad/10 text-bad" :
+                "border-border bg-panel",
+              ].join(" ")}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 야유 (오답 시) */}
+      {taunt && (
+        <div
+          key={taunt.line}
+          className="border border-bad/50 bg-bad/10 rounded-xl p-3 flex items-center gap-3 taunt-bubble"
+        >
+          <div className="text-4xl shrink-0 taunt-face">{taunt.face}</div>
+          <div className="text-bad font-bold text-base break-keep">{taunt.line}</div>
+        </div>
+      )}
+
+      {/* 정답 공개 (로고 포함) */}
+      {picked && (
+        <div className="card reveal-pop !p-4 grid gap-3">
+          <div className="flex justify-center">
+            <BrandLogo brand={revealBrand} size="lg" />
+          </div>
+          <div className="text-center">
+            <div className={`text-xs ${isCorrect ? "text-good" : "text-muted"}`}>
+              {isCorrect ? "정답!" : "정답은"}
+            </div>
+            <div className="text-base font-semibold mt-0.5">
+              {q.entry.builder} · {q.entry.brands.join(", ")}
+            </div>
+            {q.entry.premium && (
+              <div className="text-xs text-accent mt-0.5">프리미엄: {q.entry.premium.join(", ")}</div>
+            )}
+            {q.entry.note && <div className="text-[11px] text-muted mt-1">{q.entry.note}</div>}
+          </div>
+          <button className="btn btn-primary !py-3" onClick={next}>다음 →</button>
+        </div>
+      )}
+
+      {/* 약점 가중치 토글 (작게) */}
+      <label className="flex items-center justify-center gap-1.5 text-[11px] text-muted select-none">
+        <input type="checkbox" checked={weakBias} onChange={(e) => setWeakBias(e.target.checked)} className="accent-accent" />
+        약점 가중치
+      </label>
     </div>
   );
 }

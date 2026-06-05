@@ -104,7 +104,7 @@ export default function TreeScene({
       <div className={`absolute inset-0 ${treeShake ? "tree-shake" : ""}`} key={`bg-${treeShake ? actionKey : 0}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/scene-bg.png"
+          src="/scene-bg-v2.png"
           alt="숲 배경"
           className="w-full h-full object-cover select-none pointer-events-none"
           draggable={false}

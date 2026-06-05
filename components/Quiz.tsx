@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { BUILDERS, BuilderEntry } from "@/data/brands";
 import { pickQuestion, tierColor, shuffle } from "@/lib/utils";
 import { loadStore, recordAnswer, resetSession } from "@/lib/storage";
+import { randomTaunt, Taunt } from "@/data/taunts";
 
 type Mode = "builder-to-brand" | "brand-to-builder" | "mixed";
 
@@ -44,11 +45,12 @@ export default function Quiz() {
   const [q, setQ] = useState<Q | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const [session, setSession] = useState(loadStore().session);
+  const [taunt, setTaunt] = useState<Taunt | null>(null);
 
   useEffect(() => { resetSession(); setSession(loadStore().session); }, []);
-  useEffect(() => { setQ(generate(mode, weakBias)); setPicked(null); }, [mode, weakBias]);
+  useEffect(() => { setQ(generate(mode, weakBias)); setPicked(null); setTaunt(null); }, [mode, weakBias]);
 
-  const next = () => { setQ(generate(mode, weakBias)); setPicked(null); };
+  const next = () => { setQ(generate(mode, weakBias)); setPicked(null); setTaunt(null); };
 
   const choose = (opt: string) => {
     if (picked || !q) return;
@@ -56,6 +58,7 @@ export default function Quiz() {
     const correct = opt === q.correct;
     const s = recordAnswer(q.mode, q.entry.id, correct);
     setSession(s.session);
+    setTaunt(correct ? null : randomTaunt());
   };
 
   const acc = session.total ? Math.round((session.correct / session.total) * 100) : 0;
@@ -88,7 +91,7 @@ export default function Quiz() {
         <Mini label="최고 연속" value={`${session.bestStreak}`} sub="best" />
       </div>
 
-      <div className="card">
+      <div className={`card ${taunt ? "flash-bad" : ""}`}>
         <div className="flex items-center justify-between mb-2">
           <span className="chip">{q.mode === "builder-to-brand" ? "시공사→브랜드" : "브랜드→시공사"}</span>
           <span className={`chip ${tierColor(q.entry.tier)}`}>{q.entry.tier}티어</span>
@@ -119,10 +122,27 @@ export default function Quiz() {
           })}
         </div>
 
+        {taunt && (
+          <div
+            key={taunt.line}
+            className="mt-5 border-2 border-bad/60 bg-bad/10 rounded-2xl p-4 flex items-center gap-4 taunt-bubble"
+          >
+            <div className="text-5xl sm:text-6xl shrink-0 taunt-face" aria-hidden>
+              {taunt.face}
+            </div>
+            <div className="flex-1">
+              <div className="text-[11px] text-bad font-semibold tracking-wider mb-0.5">💢 오답 💢</div>
+              <div className="text-bad font-extrabold text-lg sm:text-xl leading-tight break-keep">
+                {taunt.line}
+              </div>
+            </div>
+          </div>
+        )}
+
         {picked && (
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
             <div className="text-sm">
-              <div className="text-muted">정답</div>
+              <div className="text-muted">{taunt ? "정답은" : "정답"}</div>
               <div className="text-base font-semibold">
                 {q.entry.builder} · {q.entry.brands.join(", ")}
                 {q.entry.premium && <span className="text-accent"> / {q.entry.premium.join(", ")} (프리미엄)</span>}

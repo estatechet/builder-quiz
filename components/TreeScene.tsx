@@ -109,32 +109,6 @@ export default function TreeScene({
           className="w-full h-full object-cover select-none pointer-events-none"
           draggable={false}
         />
-        {/* 좌상단 HUD 잔흔 가리기 (다람쥐 액자 + 하트) */}
-        <div
-          className="absolute top-0 left-0 pointer-events-none"
-          style={{
-            width: "62%",
-            height: "22%",
-            background: "linear-gradient(135deg, rgba(20,55,90,0.55) 0%, rgba(20,55,90,0.35) 45%, transparent 80%)",
-            backdropFilter: "blur(16px)",
-            WebkitBackdropFilter: "blur(16px)",
-            maskImage: "linear-gradient(135deg, black 0%, black 50%, transparent 90%)",
-            WebkitMaskImage: "linear-gradient(135deg, black 0%, black 50%, transparent 90%)",
-          }}
-        />
-        {/* 우상단 HUD 잔흔 가리기 (도토리 x25 텍스트) */}
-        <div
-          className="absolute top-0 right-0 pointer-events-none"
-          style={{
-            width: "44%",
-            height: "19%",
-            background: "linear-gradient(225deg, rgba(90,55,30,0.55) 0%, rgba(90,55,30,0.35) 45%, transparent 80%)",
-            backdropFilter: "blur(16px)",
-            WebkitBackdropFilter: "blur(16px)",
-            maskImage: "linear-gradient(225deg, black 0%, black 55%, transparent 90%)",
-            WebkitMaskImage: "linear-gradient(225deg, black 0%, black 55%, transparent 90%)",
-          }}
-        />
       </div>
 
       {/* 우상단: 동적 도토리 카운터 (정답마다 +1, 30 도달 시 황금) */}

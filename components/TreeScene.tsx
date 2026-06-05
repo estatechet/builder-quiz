@@ -17,11 +17,11 @@ type Props = {
 
 type Particle = { id: number; left: number; top: number; lx: number; lr: number; emoji: string; kind: "fall" | "up" };
 
-// 새 일러스트의 도토리 3개 위치 (목숨 시각화 용)
+// 새 일러스트의 우측 도토리 3개 위치 (목숨)
 const ACORN_POSITIONS = [
-  { top: "13%", right: "5%" },
-  { top: "33%", right: "5%" },
-  { top: "54%", right: "5%" },
+  { top: "21%", right: "4.5%" },
+  { top: "39%", right: "4.5%" },
+  { top: "57%", right: "4.5%" },
 ];
 
 export default function TreeScene({
@@ -70,9 +70,9 @@ export default function TreeScene({
     return () => clearTimeout(t);
   }, [actionKey, lastAction]);
 
-  // 다람쥐 위치 — 트렁크가 우측에 있으니 left를 약간 우측으로
-  const yPct =
-    level === 2 ? 12 : Math.max(15, 75 - (correctCount / TARGET_CORRECT) * 60);
+  // 다람쥐 위치 — 일러스트의 다람쥐 원위치에 고정 (인페인트 자국 가림)
+  // 진행도 시각화는 우상단 카운터 + 하단 게이지로
+  const yPct = 53;
 
   const animClass =
     lastAction === "fall" ? "squirrel-sprite-fall" :
@@ -106,23 +106,24 @@ export default function TreeScene({
       <div className={`absolute inset-0 ${treeShake ? "tree-shake" : ""}`} key={`bg-${treeShake ? actionKey : 0}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/scene-bg-v3.png"
+          src="/scene-bg-v4.png"
           alt="숲 배경"
           className="w-full h-full object-cover select-none pointer-events-none"
           draggable={false}
         />
       </div>
 
-      {/* 우상단 도토리 카운터 — 일러스트의 박스 위에 정확히 덮기 */}
+      {/* 우상단 도토리 카운터 — 그림의 마스킹된 박스 위치에 정확히 (right 1~27%, top 1~12%) */}
       <div
         key={`acorn-counter-${correctCount}`}
-        className={`absolute z-20 px-2.5 py-1.5 rounded-xl border-[3px] shadow-lg flex items-center gap-1.5 ${
+        className={`absolute z-20 px-3 py-2 rounded-xl border-[3px] shadow-lg flex items-center justify-center gap-2 ${
           correctCount > 0 ? "acorn-pulse" : ""
         }`}
         style={{
-          top: "2.5%",
-          right: "3%",
-          minWidth: "23%",
+          top: "2%",
+          right: "2%",
+          width: "24%",
+          height: "10%",
           background: correctCount >= TARGET_CORRECT
             ? "linear-gradient(135deg, #fde047, #f59e0b)"
             : "linear-gradient(135deg, #d4a574, #8b5a2b)",
@@ -132,10 +133,10 @@ export default function TreeScene({
             : "0 4px 10px rgba(0,0,0,0.4)",
         }}
       >
-        <span className="text-xl drop-shadow">🌰</span>
+        <span className="text-xl sm:text-2xl drop-shadow">🌰</span>
         <span className="text-white font-black text-sm sm:text-base tabular-nums drop-shadow">
           {correctCount}
-          <span className="text-amber-200 text-xs sm:text-sm"> / {TARGET_CORRECT}</span>
+          <span className="text-amber-200 text-xs sm:text-sm">/{TARGET_CORRECT}</span>
         </span>
       </div>
 
@@ -192,19 +193,15 @@ export default function TreeScene({
         ))}
       </div>
 
-      {/* 다람쥐 스프라이트 (새 이미지) */}
+      {/* 다람쥐 스프라이트 — 일러스트의 다람쥐 원위치에 고정, 자국 완전 가림 */}
       <div
         key={`sq-${lastAction}-${actionKey}`}
         className={`absolute pointer-events-none z-[8] ${animClass}`}
         style={{
-          left: "45%",
+          left: "44%",
           top: `${yPct}%`,
-          width: "28%",
+          width: "36%",
           transform: "translate(-50%, -50%)",
-          transition:
-            lastAction === "fall" || lastAction === "wobble"
-              ? "none"
-              : "top 0.65s cubic-bezier(.34, 1.5, .64, 1)",
         }}
       >
         <div className="relative">

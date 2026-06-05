@@ -92,7 +92,14 @@ export default function TreeScene({
     "none";
 
   return (
-    <div className="relative w-full aspect-square max-h-[78vh] mx-auto rounded-3xl overflow-hidden border-2 border-amber-900/40 shadow-2xl">
+    <div
+      className="relative w-full aspect-square mx-auto rounded-3xl overflow-hidden border-2 border-amber-900/40 shadow-2xl"
+      style={{
+        // 헤더(약 64px) + 문제카드(약 320px) + 푸터/여백 합쳐서 확보, 한 화면에 들어오게 제한
+        maxHeight: "min(calc(100svh - 380px), 80vw)",
+        maxWidth: "calc(100svh - 380px)",
+      }}
+    >
       {/* 배경 (다람쥐 제거된 씬) */}
       <div className={`absolute inset-0 ${treeShake ? "tree-shake" : ""}`} key={`bg-${treeShake ? actionKey : 0}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -247,7 +247,7 @@ export default function Quiz() {
 
   // ─── 메인 게임 화면 ───
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-2 sm:gap-4">
       <TreeScene
         correctCount={game.correctCount}
         strikes={game.strikes}
@@ -260,15 +260,15 @@ export default function Quiz() {
 
       {/* 팝업 영역 — 풀이 중에만 보임 */}
       {phase !== "transitioning" && q && (
-        <div className="card popup-in !p-5 grid gap-3">
+        <div className="card popup-in !p-3 sm:!p-5 grid gap-2 sm:gap-3">
           <div className="text-center">
-            <div className="text-[11px] text-muted mb-2">{q.questionLabel}</div>
-            <div className="text-2xl sm:text-3xl font-bold break-keep">{q.question}</div>
+            <div className="text-[10px] sm:text-[11px] text-muted mb-1">{q.questionLabel}</div>
+            <div className="text-xl sm:text-3xl font-bold break-keep">{q.question}</div>
           </div>
 
-          {/* Lv1 — 4지선다 */}
+          {/* Lv1 — 4지선다 (모바일은 2x2 그리드로 컴팩트) */}
           {game.level === 1 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
               {q.options.map((opt) => {
                 const isC = phase === "revealing" && opt === q.correct;
                 const isW = picked === opt && opt !== q.correct;
@@ -278,7 +278,7 @@ export default function Quiz() {
                     onClick={() => onChoice(opt)}
                     disabled={phase !== "asking"}
                     className={[
-                      "px-4 py-3 rounded-xl border text-left text-base transition-all",
+                      "px-2.5 py-2.5 sm:px-4 sm:py-3 rounded-xl border text-left text-sm sm:text-base transition-all",
                       phase !== "asking" ? "cursor-default" : "hover:bg-panel2 active:scale-[0.98]",
                       isC ? "border-good bg-good/10 text-good font-medium" :
                       isW ? "border-bad bg-bad/10 text-bad" :

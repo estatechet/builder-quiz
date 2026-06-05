@@ -24,8 +24,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko">
       <body>
-        <div className="max-w-3xl mx-auto px-4 py-5">
-          <header className="flex items-center justify-between mb-6">
+        <div className="max-w-3xl mx-auto px-4 py-3 sm:py-5">
+          <header className="flex items-center justify-between mb-3 sm:mb-5">
             <Link href="/" className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-accent text-bg grid place-items-center text-sm font-black">B</div>
               <span className="text-sm font-semibold">시공사 퀴즈</span>

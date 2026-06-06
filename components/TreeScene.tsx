@@ -98,15 +98,16 @@ export default function TreeScene({
     <div
       className="relative w-full aspect-square mx-auto rounded-3xl overflow-hidden border-2 border-amber-900/40 shadow-2xl"
       style={{
-        maxHeight: "min(calc(100svh - 380px), 80vw)",
-        maxWidth: "calc(100svh - 380px)",
+        // 모바일 한 화면에 다 들어오게 더 컴팩트하게: 헤더 + 카드(고정 옵션) + 여백 약 420px
+        maxHeight: "min(calc(100svh - 420px), 72vw)",
+        maxWidth: "calc(100svh - 420px)",
       }}
     >
       {/* 배경 (다람쥐만 제거된 새 일러스트) */}
       <div className={`absolute inset-0 ${treeShake ? "tree-shake" : ""}`} key={`bg-${treeShake ? actionKey : 0}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/scene-bg-v4.png"
+          src="/scene-bg-v6.png"
           alt="숲 배경"
           className="w-full h-full object-cover select-none pointer-events-none"
           draggable={false}
@@ -193,14 +194,14 @@ export default function TreeScene({
         ))}
       </div>
 
-      {/* 다람쥐 스프라이트 — 일러스트의 다람쥐 원위치에 고정, 자국 완전 가림 */}
+      {/* 다람쥐 스프라이트 — 일러스트 원위치에 고정, 솔리드 갈색 영역을 완전히 덮음 */}
       <div
         key={`sq-${lastAction}-${actionKey}`}
         className={`absolute pointer-events-none z-[8] ${animClass}`}
         style={{
-          left: "44%",
+          left: "42%",
           top: `${yPct}%`,
-          width: "36%",
+          width: "48%",
           transform: "translate(-50%, -50%)",
         }}
       >

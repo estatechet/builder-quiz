@@ -260,13 +260,13 @@ export default function Quiz() {
 
       {/* 팝업 영역 — 풀이 중에만 보임 */}
       {phase !== "transitioning" && q && (
-        <div className="card popup-in !p-3 sm:!p-5 grid gap-2 sm:gap-3">
-          <div className="text-center">
-            <div className="text-[10px] sm:text-[11px] text-muted mb-1">{q.questionLabel}</div>
-            <div className="text-xl sm:text-3xl font-bold break-keep">{q.question}</div>
+        <div className="card popup-in !p-2.5 sm:!p-4 grid gap-1.5 sm:gap-3">
+          <div className="text-center h-12 sm:h-16 flex flex-col justify-center">
+            <div className="text-[10px] sm:text-[11px] text-muted mb-0.5">{q.questionLabel}</div>
+            <div className="text-base sm:text-2xl font-bold break-keep leading-tight line-clamp-2">{q.question}</div>
           </div>
 
-          {/* Lv1 — 4지선다 (모바일은 2x2 그리드로 컴팩트) */}
+          {/* Lv1 — 4지선다: 고정 높이로 텍스트 길이 차이 시 화면 움직임 제거 */}
           {game.level === 1 && (
             <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
               {q.options.map((opt) => {
@@ -278,14 +278,15 @@ export default function Quiz() {
                     onClick={() => onChoice(opt)}
                     disabled={phase !== "asking"}
                     className={[
-                      "px-2.5 py-2.5 sm:px-4 sm:py-3 rounded-xl border text-left text-sm sm:text-base transition-all",
+                      "px-2 sm:px-3 rounded-xl border text-center text-xs sm:text-sm font-medium transition-all",
+                      "h-12 sm:h-14 flex items-center justify-center break-keep leading-tight overflow-hidden",
                       phase !== "asking" ? "cursor-default" : "hover:bg-panel2 active:scale-[0.98]",
-                      isC ? "border-good bg-good/10 text-good font-medium" :
+                      isC ? "border-good bg-good/10 text-good" :
                       isW ? "border-bad bg-bad/10 text-bad" :
                       "border-border bg-panel",
                     ].join(" ")}
                   >
-                    {opt}
+                    <span className="line-clamp-2">{opt}</span>
                   </button>
                 );
               })}

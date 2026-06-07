@@ -16,6 +16,7 @@ import {
   saveBest,
   saveGame,
   TARGET_CORRECT,
+  LV2_TARGET,
 } from "@/lib/game";
 import { randomTaunt, Taunt } from "@/data/taunts";
 import { recordAnswer } from "@/lib/storage";
@@ -43,6 +44,7 @@ export default function Quiz() {
   const [mood, setMood] = useState<Mood>("happy");
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
+  const [showGameComplete, setShowGameComplete] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -85,15 +87,19 @@ export default function Quiz() {
   }, []);
 
   // 정답 공개 → 다음 문제로
-  const advanceFromReveal = useCallback((next: GameState, justLeveledUp: boolean) => {
+  const advanceFromReveal = useCallback((next: GameState, justLeveledUp: boolean, justCompleted: boolean) => {
     if (advanceTimerRef.current) {
       clearTimeout(advanceTimerRef.current);
       advanceTimerRef.current = null;
     }
     if (next.gameOver) {
-      // 낙하 애니메이션 후 게임오버
       setPhase("transitioning");
       setTimeout(() => setShowGameOver(true), FALL_MS);
+      return;
+    }
+    if (justCompleted) {
+      setPhase("transitioning");
+      setTimeout(() => setShowGameComplete(true), 400);
       return;
     }
     if (justLeveledUp) {
@@ -112,7 +118,7 @@ export default function Quiz() {
 
     recordAnswer(q.mode, q.entry.id, correct);
 
-    const { game: next, best: nextBest, justLeveledUp } = applyAnswer(game, best, correct);
+    const { game: next, best: nextBest, justLeveledUp, justCompleted } = applyAnswer(game, best, correct);
     setGame(next);
     setBest(nextBest);
     saveGame(next);
@@ -135,7 +141,7 @@ export default function Quiz() {
 
     // 자동 진행 타이머
     advanceTimerRef.current = setTimeout(() => {
-      advanceFromReveal(next, justLeveledUp);
+      advanceFromReveal(next, justLeveledUp, justCompleted);
     }, REVEAL_MS);
   }, [q, phase, game, best, advanceFromReveal]);
 
@@ -158,8 +164,7 @@ export default function Quiz() {
       clearTimeout(advanceTimerRef.current);
       advanceTimerRef.current = null;
     }
-    // 현재 게임 상태로 진행 (방금 적용된 결과 기준)
-    advanceFromReveal(game, false);
+    advanceFromReveal(game, false, false);
   };
 
   const restart = () => {
@@ -170,6 +175,7 @@ export default function Quiz() {
     setBest(loadBest());
     setShowGameOver(false);
     setShowLevelUp(false);
+    setShowGameComplete(false);
     setLastAction("none");
     setActionKey(0);
     setMood("happy");
@@ -177,35 +183,63 @@ export default function Quiz() {
     loadNext(fresh);
   };
 
-  // ─── 게임오버 화면 ───
+  // ─── 게임오버 화면 (다람쥐 자국 없는 다크 배경) ───
   if (showGameOver) {
     return (
       <div className="grid gap-4 text-center">
-        <TreeScene
-          correctCount={0}
-          strikes={MAX_STRIKES}
-          level={game.level}
-          round={game.round}
-          lastAction="fall"
-          actionKey={actionKey}
-          mood="shocked"
-        />
-        <div className="card !p-6 grid gap-3 reveal-pop">
-          <div>
-            <div className="text-3xl font-black tracking-wider text-bad">GAME OVER</div>
-            <div className="text-xs text-muted mt-1">3진 아웃, 다람쥐가 떨어졌습니다 🥲</div>
+        <div
+          className="relative w-full aspect-square mx-auto rounded-3xl overflow-hidden border-2 border-amber-900/40 shadow-2xl flex items-center justify-center"
+          style={{
+            maxHeight: "min(calc(100svh - 420px), 72vw)",
+            maxWidth: "calc(100svh - 420px)",
+            background: "radial-gradient(circle at 50% 40%, #2a1a14 0%, #0a0507 90%)",
+          }}
+        >
+          <div className="text-center">
+            <div className="text-7xl sm:text-8xl mb-2" style={{ animation: "taunt-bounce 1.4s ease-in-out infinite" }}>💀</div>
+            <div className="text-3xl sm:text-4xl font-black tracking-wider text-bad drop-shadow-lg">GAME OVER</div>
+            <div className="text-xs text-muted mt-2">다람쥐가 떨어졌습니다 🥲</div>
           </div>
+        </div>
+        <div className="card !p-3 grid gap-2 reveal-pop">
           <div className="grid grid-cols-3 gap-2">
             <Mini label="정답" value={`${game.totalCorrect}`} />
             <Mini label="총 답변" value={`${game.totalAnswered}`} />
             <Mini label="도달" value={`Lv${game.reachedLv2 ? 2 : 1}`} />
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            <Mini label="최고 진행" value={`${best.maxProgressLv1}/${TARGET_CORRECT}`} muted />
-            <Mini label="최장" value={`${best.longestRun}`} muted />
-            <Mini label="Lv2 최다" value={`${best.bestLv2Correct}`} muted />
-          </div>
           <button onClick={restart} className="btn btn-primary !py-3">다시 시작</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── 엔딩 화면: Lv2 클리어 (다람쥐 자국 없는 황금 배경) ───
+  if (showGameComplete) {
+    return (
+      <div className="grid gap-4 text-center">
+        <div
+          className="relative w-full aspect-square mx-auto rounded-3xl overflow-hidden border-2 border-amber-500/60 shadow-2xl flex items-center justify-center"
+          style={{
+            maxHeight: "min(calc(100svh - 420px), 72vw)",
+            maxWidth: "calc(100svh - 420px)",
+            background: "radial-gradient(circle at 50% 40%, #fbbf24 0%, #b45309 50%, #451a03 100%)",
+            boxShadow: "0 0 40px #fbbf24aa",
+          }}
+        >
+          <div className="text-center px-4">
+            <div className="text-7xl sm:text-8xl mb-3" style={{ animation: "taunt-bounce 1.2s ease-in-out infinite" }}>🏆</div>
+            <div className="text-3xl sm:text-4xl font-black tracking-wider text-white drop-shadow-lg">CLEAR!</div>
+            <div className="text-sm sm:text-base text-amber-100 font-bold mt-2">분양대행 마스터 🐿️</div>
+            <div className="text-[11px] sm:text-xs text-amber-200 mt-1">Lv2 단답형 {LV2_TARGET}문제 완주</div>
+          </div>
+        </div>
+        <div className="card !p-3 grid gap-2 reveal-pop">
+          <div className="grid grid-cols-3 gap-2">
+            <Mini label="정답" value={`${game.totalCorrect}`} />
+            <Mini label="총 답변" value={`${game.totalAnswered}`} />
+            <Mini label="정답률" value={`${Math.round((game.totalCorrect / Math.max(1, game.totalAnswered)) * 100)}%`} />
+          </div>
+          <button onClick={restart} className="btn btn-primary !py-3">다시 도전</button>
         </div>
       </div>
     );

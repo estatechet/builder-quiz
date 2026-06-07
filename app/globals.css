@@ -7,6 +7,12 @@
   body {
     font-feature-settings: "ss01", "ss02";
     -webkit-font-smoothing: antialiased;
+    /* PWA notch / status bar 안전 영역 */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    min-height: 100svh;
   }
   ::selection { background: #6ea8fe33; }
 }

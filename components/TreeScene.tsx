@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MAX_STRIKES, Mood, TARGET_CORRECT } from "@/lib/game";
+import { LV2_TARGET, MAX_STRIKES, Mood, TARGET_CORRECT } from "@/lib/game";
 
 type Action = "none" | "climb" | "wobble" | "fall";
 
@@ -92,7 +92,8 @@ export default function TreeScene({
     mood === "shocked" ? "saturate(0.7)" :
     "none";
 
-  const progressPct = Math.min(100, (correctCount / TARGET_CORRECT) * 100);
+  const target = level === 2 ? LV2_TARGET : TARGET_CORRECT;
+  const progressPct = Math.min(100, (correctCount / target) * 100);
 
   return (
     <div
@@ -114,9 +115,9 @@ export default function TreeScene({
         />
       </div>
 
-      {/* 우상단 도토리 카운터 — 그림의 마스킹된 박스 위치에 정확히 (right 1~27%, top 1~12%) */}
+      {/* 우상단 도토리 카운터 — Lv1=30, Lv2=10 */}
       <div
-        key={`acorn-counter-${correctCount}`}
+        key={`acorn-counter-${correctCount}-${level}`}
         className={`absolute z-20 px-3 py-2 rounded-xl border-[3px] shadow-lg flex items-center justify-center gap-2 ${
           correctCount > 0 ? "acorn-pulse" : ""
         }`}
@@ -125,11 +126,11 @@ export default function TreeScene({
           right: "2%",
           width: "24%",
           height: "10%",
-          background: correctCount >= TARGET_CORRECT
+          background: correctCount >= (level === 2 ? LV2_TARGET : TARGET_CORRECT)
             ? "linear-gradient(135deg, #fde047, #f59e0b)"
             : "linear-gradient(135deg, #d4a574, #8b5a2b)",
-          borderColor: correctCount >= TARGET_CORRECT ? "#92400e" : "#451a03",
-          boxShadow: correctCount >= TARGET_CORRECT
+          borderColor: correctCount >= (level === 2 ? LV2_TARGET : TARGET_CORRECT) ? "#92400e" : "#451a03",
+          boxShadow: correctCount >= (level === 2 ? LV2_TARGET : TARGET_CORRECT)
             ? "0 0 18px #fbbf24, 0 4px 10px rgba(0,0,0,0.4)"
             : "0 4px 10px rgba(0,0,0,0.4)",
         }}
@@ -137,7 +138,7 @@ export default function TreeScene({
         <span className="text-xl sm:text-2xl drop-shadow">🌰</span>
         <span className="text-white font-black text-sm sm:text-base tabular-nums drop-shadow">
           {correctCount}
-          <span className="text-amber-200 text-xs sm:text-sm">/{TARGET_CORRECT}</span>
+          <span className="text-amber-200 text-xs sm:text-sm">/{level === 2 ? LV2_TARGET : TARGET_CORRECT}</span>
         </span>
       </div>
 

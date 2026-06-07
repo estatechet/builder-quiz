@@ -3,8 +3,9 @@
 import { BUILDERS, BuilderEntry } from "@/data/brands";
 import { shuffle } from "@/lib/utils";
 
-export const TARGET_CORRECT = 30;   // Lv1 → Lv2 진입 정답 수
-export const MAX_STRIKES = 3;       // 누적 오답 한계
+export const TARGET_CORRECT = 30;    // Lv1 → Lv2 진입 정답 수
+export const LV2_TARGET = 10;        // Lv2 클리어 (엔딩) 정답 수
+export const MAX_STRIKES = 3;        // 누적 오답 한계
 
 export type Level = 1 | 2;
 export type Mood = "happy" | "sad" | "shocked";
@@ -18,6 +19,7 @@ export type GameState = {
   totalAnswered: number;
   totalCorrect: number;
   gameOver: boolean;
+  gameComplete: boolean;       // Lv2 클리어 (엔딩)
   reachedLv2: boolean;
 };
 
@@ -50,6 +52,7 @@ export function initialGame(): GameState {
     totalAnswered: 0,
     totalCorrect: 0,
     gameOver: false,
+    gameComplete: false,
     reachedLv2: false,
   };
 }
@@ -161,7 +164,9 @@ export type ApplyResult = {
   justLeveledUp: boolean;
 };
 
-export function applyAnswer(g: GameState, b: Best, correct: boolean): ApplyResult {
+export type ApplyResult2 = ApplyResult & { justCompleted: boolean };
+
+export function applyAnswer(g: GameState, b: Best, correct: boolean): ApplyResult2 {
   let correctCount = g.correctCount;
   let strikes = g.strikes;
   if (correct) correctCount++;
@@ -169,6 +174,7 @@ export function applyAnswer(g: GameState, b: Best, correct: boolean): ApplyResul
 
   const gameOver = strikes >= MAX_STRIKES;
   const justLeveledUp = g.level === 1 && correctCount >= TARGET_CORRECT && !gameOver;
+  const justCompleted = g.level === 2 && correctCount >= LV2_TARGET && !gameOver;
 
   const next: GameState = {
     ...g,
@@ -177,10 +183,11 @@ export function applyAnswer(g: GameState, b: Best, correct: boolean): ApplyResul
     level: justLeveledUp ? 2 : g.level,
     reachedLv2: g.reachedLv2 || justLeveledUp,
     gameOver,
+    gameComplete: g.gameComplete || justCompleted,
     totalAnswered: g.totalAnswered + 1,
     totalCorrect: g.totalCorrect + (correct ? 1 : 0),
     seenIds: justLeveledUp ? [] : g.seenIds,
     round: justLeveledUp ? 1 : g.round,
   };
-  return { game: next, best: updateBest(b, next), justLeveledUp };
+  return { game: next, best: updateBest(b, next), justLeveledUp, justCompleted };
 }

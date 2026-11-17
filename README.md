@@ -39,3 +39,19 @@ Next.js 14 (App Router) · TypeScript · Tailwind CSS · localStorage
 ## 라이선스
 
 MIT
+
+---
+
+## 연말 만찬 초대장 (`/party`)
+
+친구들에게 링크(`/party`)를 보내 이름 · 가능/불가 날짜(드래그) · 희망 회비 · 원하는 방식을 받는 설문 페이지.
+
+- 페이지: `public/party/index.html` (정적, `/party`로 rewrite)
+- API: `app/api/party/rsvp` (본인 응답 저장/수정), `app/api/party/admin` (관리자 현황/가져오기)
+- 저장소: Upstash Redis (REST)
+- 응답 현황: `/party#admin` → 관리자 비밀번호 입력 시에만 열림
+
+### Vercel 설정
+1. 프로젝트 → **Storage** → **Upstash (Redis)** 생성 후 이 프로젝트에 Connect → `KV_REST_API_URL`, `KV_REST_API_TOKEN` 자동 추가
+2. **Settings → Environment Variables** 에 `PARTY_ADMIN_PASSWORD` 추가
+3. Redeploy

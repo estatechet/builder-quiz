@@ -318,13 +318,13 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
   <section class="step" aria-labelledby="h-budget">
     <div class="step-head">
       <span class="numeral">III</span>
-      <div><h2 id="h-budget">희망 회비</h2><p>1인 기준 · 장보기, 장소, 숙박 포함</p></div>
+      <div><h2 id="h-budget">희망 회비</h2><p>1인 기준 · 장보기, 장소, 숙박 포함 · 펜션 숙박만 1인 약 6~7만 원 (35~40만 원 ÷ 6명)</p></div>
     </div>
     <div class="budget-read" aria-live="polite">
-      <span class="amt" id="bAmt">5</span><span class="unit">만 원</span><span class="per" id="bPer"></span>
+      <span class="amt" id="bAmt">10</span><span class="unit">만 원</span><span class="per" id="bPer"></span>
     </div>
-    <input id="budget" type="range" min="20000" max="200000" step="10000" value="50000" aria-label="희망 회비">
-    <div class="scale"><span>2만</span><span>20만+</span></div>
+    <input id="budget" type="range" min="50000" max="300000" step="10000" value="100000" aria-label="희망 회비">
+    <div class="scale"><span>5만</span><span>30만+</span></div>
     <div class="chips" id="bChips"></div>
   </section>
 
@@ -431,7 +431,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
     {id:"2n",   t:"2박도 좋아요"},
     {id:"skip", t:"펜션은 패스"},
   ];
-  const BUDGET_CHIPS = [30000,50000,70000,100000,150000];
+  const BUDGET_CHIPS = [70000,100000,120000,150000,200000];
   const WD = ["일","월","화","수","목","금","토"];
   const DRAFT_KEY = "yearend-rsvp-draft-v1";
 
@@ -441,10 +441,10 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
   const now = new Date();
   const TODAY = keyOf(now.getFullYear(), now.getMonth(), now.getDate());
   const fmtDay = (k) => { const [y,m,d]=k.split("-").map(Number); return `${m}/${d}(${WD[new Date(y,m-1,d).getDay()]})`; };
-  const fmtWon = (n) => n >= 200000 ? "20만+" : (n/10000) + "만";
+  const fmtWon = (n) => n >= 300000 ? "30만+" : (n/10000) + "만";
 
   // ---------- State ----------
-  let state = { name:"", dates:{}, budget:50000, styles:[], trip:null, memo:"" };
+  let state = { name:"", dates:{}, budget:100000, styles:[], trip:null, memo:"" };
   let mode = "yes";
   let monthIdx = DEFAULT_MONTH, rMonthIdx = DEFAULT_MONTH;
   let responses = [];
@@ -586,11 +586,11 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
   const range = $("budget");
   BUDGET_CHIPS.forEach(v => { const b=document.createElement("button"); b.type="button"; b.className="chip"; b.dataset.v=v; b.textContent=fmtWon(v); b.onclick=()=>{ state.budget=v; syncBudget(); saveDraft(); }; $("bChips").appendChild(b); });
   function syncBudget(){
-    const v = state.budget ?? 50000;
-    range.value = Math.min(200000, v);
-    $("bAmt").textContent = v>=200000 ? "20+" : String(v/10000);
-    $("bPer").textContent = v>=200000 ? "이상" : "";
-    range.style.setProperty("--fill", ((v-20000)/(180000)*100)+"%");
+    const v = state.budget ?? 100000;
+    range.value = Math.min(300000, Math.max(50000, v));
+    $("bAmt").textContent = v>=300000 ? "30+" : String(v/10000);
+    $("bPer").textContent = v>=300000 ? "이상" : "";
+    range.style.setProperty("--fill", Math.min(100, Math.max(0, (v-50000)/250000*100))+"%");
     document.querySelectorAll("#bChips .chip").forEach(c => c.setAttribute("aria-pressed", String(Number(c.dataset.v)===v)));
   }
   range.addEventListener("input", () => { state.budget = Number(range.value); syncBudget(); });
@@ -699,7 +699,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
       const med = bs.length%2 ? bs[(bs.length-1)/2] : (bs[bs.length/2-1]+bs[bs.length/2])/2;
       addStat("최소", fmtWon(bs[0])); addStat("중간값", fmtWon(Math.round(med/10000)*10000)); addStat("최대", fmtWon(bs[bs.length-1]));
     } else addStat("아직","–");
-    const buckets=[["~3만",0,30000],["4~5만",40000,50000],["6~8만",60000,80000],["9~12만",90000,120000],["13만~",130000,1e9]];
+    const buckets=[["~7만",0,70000],["8~10만",80000,100000],["11~15만",110000,150000],["16~20만",160000,200000],["21만~",210000,1e9]];
     drawBars($("bBars"), buckets.map(([l,lo,hi])=>[l, bs.filter(v=>v>=lo&&v<=hi).length]), bs.length);
     drawBars($("sBars"), STYLES.map(s=>[s.t, responses.filter(r=>r.styles.includes(s.id)).length]), n);
     drawBars($("tBars"), TRIPS.map(t=>[t.t, responses.filter(r=>r.trip===t.id).length]), n);

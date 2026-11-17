@@ -77,10 +77,9 @@ button{font:inherit;color:inherit}
 .letter{position:absolute;left:7%;right:7%;top:7%;height:86%;z-index:2;background:#0e0e10;border-radius:4px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;text-align:center;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);animation:letterUpZoom 2.2s cubic-bezier(.65,0,.35,1) 3.85s both}
-.letter small{font-size:8px;font-weight:500;letter-spacing:.38em;color:#8f8f8c;padding-left:.38em}
-.letter em{font-style:normal;font-weight:200;font-size:clamp(21px,6.6vw,29px);letter-spacing:-.025em;line-height:1;color:#f4f4f1}
-.letter .yr{display:flex;align-items:center;gap:8px;font-size:8.5px;font-weight:500;letter-spacing:.4em;color:#c9c9c5;padding-left:.4em}
-.letter .yr::before,.letter .yr::after{content:"";width:16px;height:1px;background:rgba(255,255,255,.3)}
+.letter::before{content:"";position:absolute;inset:7px;border:1px solid rgba(255,255,255,.16);border-radius:2px}
+.letter::after{content:"";position:absolute;inset:11px;border:1px solid rgba(255,255,255,.07);border-radius:1px}
+.letter .mark{width:22%;max-width:56px;color:#d8d8d4;opacity:.85}
 .env-front{position:absolute;inset:0;z-index:3;background:linear-gradient(180deg,#ebe7e0,#ddd8cf);border-radius:5px;clip-path:polygon(0 0,50% 54%,100% 0,100% 100%,0 100%);animation:envFade .6s ease 4.7s forwards}
 .env-flap{position:absolute;left:0;right:0;top:0;height:58%;z-index:4;background:linear-gradient(180deg,#e2ddd5,#d3cec5);
   clip-path:polygon(0 0,100% 0,50% 100%);transform-origin:top center;animation:flapOpen .8s ease-in-out 3.2s both,envFade .6s ease 4.7s forwards}
@@ -259,7 +258,7 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;bac
     <div class="stagec">
       <div class="env">
         <div class="env-back"></div>
-        <div class="letter"><small>YOU&rsquo;RE INVITED</small><em>Year-End Supper</em><span class="yr">2026</span></div>
+        <div class="letter"><svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"><path d="M20 4v32M6.1 12l27.8 16M6.1 28l27.8-16"/><path d="M17 7l3 3 3-3M17 33l3-3 3 3M7.6 15.6l4.1-1.1-1.1-4.1M32.4 24.4l-4.1 1.1 1.1 4.1M7.6 24.4l4.1 1.1-1.1 4.1M32.4 15.6l-4.1-1.1 1.1-4.1"/></g></svg></div>
         <div class="env-front"></div>
         <div class="env-flap"></div>
         <div class="rib-v satin-v"></div>
